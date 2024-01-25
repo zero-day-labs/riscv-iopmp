@@ -1,0 +1,14 @@
+{
+    "enable_tor" : true,
+    "model"      : 0,
+    "domains"    : 8,
+    "entries"    : 32,
+    "sources"    : 8,
+
+    "files_to_generate": [
+        {
+            "input_file"  : "./io_pmp_v1_0_draft5v2.tpl",
+            "output_file" : "../regmap_scripts/rv_iopmp_v1_0.hjson"
+        }
+    ]
+}

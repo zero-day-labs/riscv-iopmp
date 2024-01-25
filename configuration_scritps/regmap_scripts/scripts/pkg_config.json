@@ -1,0 +1,27 @@
+{
+    "input_file" : "../iopmp_reg_pkg.sv",
+    "output_file" : "../script_generated/rv_iopmp_reg_pkg.sv",
+    "types_to_clean": [
+        {
+            "type_name" : "iopmp_reg2hw_srcmd_en"
+        },
+        {
+            "type_name" : "iopmp_reg2hw_srcmd_enh"
+        },
+        {
+            "type_name" : "iopmp_reg2hw_entry_addr"
+        },
+        {
+            "type_name" : "iopmp_reg2hw_entry_addrh"
+        },
+        {
+            "type_name" : "iopmp_reg2hw_entry_cfg"
+        },
+        {
+            "type_name" : "iopmp_reg2hw_entry_user_cfg"
+        },
+        {
+            "type_name" : "iopmp_reg2hw_mdcfg_reg_t"
+        }
+    ]
+}
