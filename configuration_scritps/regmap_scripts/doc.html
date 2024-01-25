@@ -1,0 +1,457 @@
+## Summary
+
+| Name                                  | Offset   |   Length | Description                                                                                     |
+|:--------------------------------------|:---------|---------:|:------------------------------------------------------------------------------------------------|
+| iopmp.[`VERSION`](#version)           | 0x0      |        4 | Indicates the IP version and other vendor details.                                              |
+| iopmp.[`IMP`](#imp)                   | 0x4      |        4 | The implementation ID                                                                           |
+| iopmp.[`HWCFG0`](#hwcfg0)             | 0x8      |        4 | Indicates the configurations of current IOPMP instance                                          |
+| iopmp.[`HWCFG1`](#hwcfg1)             | 0xc      |        4 | Indicates the configurations of current IOPMP instance                                          |
+| iopmp.[`HWCFG2`](#hwcfg2)             | 0x10     |        4 | Indicates the configurations of current IOPMP instance                                          |
+| iopmp.[`ENTRY_OFFSET`](#entry_offset) | 0x14     |        4 | Indicates the internal address offsets of each table.                                           |
+| iopmp.[`ERRREACT`](#errreact)         | 0x18     |        4 | Indicates errors events in the IOPMP IP.                                                        |
+| iopmp.[`MDCFGLCK`](#mdcfglck)         | 0x48     |        4 | Lock Register for MDCFG table.                                                                  |
+| iopmp.[`ENTRYLCK`](#entrylck)         | 0x4c     |        4 | Lock register for entry array.                                                                  |
+| iopmp.[`ERR_REQINFO`](#err_reqinfo)   | 0x60     |        4 | Captures more detailed error infomation.                                                        |
+| iopmp.[`ERR_REQID`](#err_reqid)       | 0x64     |        4 | Indicate the errored SID and entry index.                                                       |
+| iopmp.[`ERR_REQADDR`](#err_reqaddr)   | 0x68     |        4 | Indicate the errored request address low bits.                                                  |
+| iopmp.[`ERR_REQADDRH`](#err_reqaddrh) | 0x6c     |        4 | Indicate the errored request address low bits.                                                  |
+| iopmp.[`MDCFG`](#mdcfg)               | 0x800    |        4 | MDCFG table is a lookup to specify the number of IOPMP entries that is associated with each MD. |
+| iopmp.[`SRCMD_EN`](#srcmd_en)         | 0x1000   |        4 | Bitmapped MD enable register low bits.                                                          |
+| iopmp.[`SRCMD_ENH`](#srcmd_enh)       | 0x1004   |        4 | Bitmapped MD enable register high bits.                                                         |
+| iopmp.[`ENTRY_ADDR`](#entry_addr)     | 0x2000   |        4 | IOPMP entrie number  low bits of physical address of protected memory region                    |
+| iopmp.[`ENTRY_ADDRH`](#entry_addrh)   | 0x2004   |        4 | IOPMP entrie number  high bits of physical address of protected memory region                   |
+| iopmp.[`ENTRY_CFG`](#entry_cfg)       | 0x2008   |        4 | IOPMP entrie number  configuration register.                                                    |
+
+## VERSION
+Indicates the IP version and other vendor details.
+- Offset: `0x0`
+- Reset default: `0x0`
+- Reset mask: `0xffffffff`
+
+### Fields
+
+```wavejson
+{"reg": [{"name": "vendor", "bits": 24, "attr": ["ro"], "rotate": 0}, {"name": "specver", "bits": 8, "attr": ["ro"], "rotate": 0}], "config": {"lanes": 1, "fontsize": 10, "vspace": 80}}
+```
+
+|  Bits  |  Type  |  Reset  | Name    | Description                |
+|:------:|:------:|:-------:|:--------|:---------------------------|
+| 31:24  |   ro   |   0x0   | specver | The specification version. |
+|  23:0  |   ro   |   0x0   | vendor  | The vendor ID.             |
+
+## IMP
+The implementation ID
+- Offset: `0x4`
+- Reset default: `0x0`
+- Reset mask: `0xffffffff`
+
+### Fields
+
+```wavejson
+{"reg": [{"name": "impid", "bits": 32, "attr": ["ro"], "rotate": 0}], "config": {"lanes": 1, "fontsize": 10, "vspace": 80}}
+```
+
+|  Bits  |  Type  |  Reset  | Name   | Description            |
+|:------:|:------:|:-------:|:-------|:-----------------------|
+|  31:0  |   ro   |   0x0   | impid  | The implementation ID. |
+
+## HWCFG0
+Indicates the configurations of current IOPMP instance
+- Offset: `0x8`
+- Reset default: `0x8000090`
+- Reset mask: `0xff003fff`
+
+### Fields
+
+```wavejson
+{"reg": [{"name": "model", "bits": 4, "attr": ["ro"], "rotate": 0}, {"name": "tor_en", "bits": 1, "attr": ["ro"], "rotate": -90}, {"name": "sps_en", "bits": 1, "attr": ["ro"], "rotate": -90}, {"name": "user_cfg_en", "bits": 1, "attr": ["ro"], "rotate": -90}, {"name": "prient_prog", "bits": 1, "attr": ["rw1cs"], "rotate": -90}, {"name": "sid_transl_en", "bits": 1, "attr": ["ro"], "rotate": -90}, {"name": "sid_transl_prog", "bits": 1, "attr": ["ro"], "rotate": -90}, {"name": "chk_x", "bits": 1, "attr": ["ro"], "rotate": -90}, {"name": "no_x", "bits": 1, "attr": ["ro"], "rotate": -90}, {"name": "no_w", "bits": 1, "attr": ["ro"], "rotate": -90}, {"name": "stall_en", "bits": 1, "attr": ["ro"], "rotate": -90}, {"bits": 10}, {"name": "md_num", "bits": 7, "attr": ["ro"], "rotate": 0}, {"name": "enable", "bits": 1, "attr": ["rw1ss"], "rotate": -90}], "config": {"lanes": 1, "fontsize": 10, "vspace": 170}}
+```
+
+|  Bits  |  Type  |  Reset  | Name                                        |
+|:------:|:------:|:-------:|:--------------------------------------------|
+|   31   | rw1ss  |   0x0   | [enable](#hwcfg0--enable)                   |
+| 30:24  |   ro   |   0x8   | [md_num](#hwcfg0--md_num)                   |
+| 23:14  |        |         | Reserved                                    |
+|   13   |   ro   |   0x0   | [stall_en](#hwcfg0--stall_en)               |
+|   12   |   ro   |   0x0   | [no_w](#hwcfg0--no_w)                       |
+|   11   |   ro   |   0x0   | [no_x](#hwcfg0--no_x)                       |
+|   10   |   ro   |   0x0   | [chk_x](#hwcfg0--chk_x)                     |
+|   9    |   ro   |   0x0   | [sid_transl_prog](#hwcfg0--sid_transl_prog) |
+|   8    |   ro   |   0x0   | [sid_transl_en](#hwcfg0--sid_transl_en)     |
+|   7    | rw1cs  |   0x1   | [prient_prog](#hwcfg0--prient_prog)         |
+|   6    |   ro   |   0x0   | [user_cfg_en](#hwcfg0--user_cfg_en)         |
+|   5    |   ro   |   0x0   | [sps_en](#hwcfg0--sps_en)                   |
+|   4    |   ro   |   0x1   | [tor_en](#hwcfg0--tor_en)                   |
+|  3:0   |   ro   |   0x0   | [model](#hwcfg0--model)                     |
+
+### HWCFG0 . enable
+Indicate if the IOPMP checks transactions. If it is implemented,
+it should be initial to 0 and sticky to 1. If it is not implemented,
+it should be wired to 1.
+
+### HWCFG0 . md_num
+Indicate the supported number of MD in the instance.
+
+### HWCFG0 . stall_en
+Indicate if the IOPMP implements stall-related
+features, which are MDSTALL, MDSTALLH, and
+SIDSCP registers.
+
+### HWCFG0 . no_w
+Indicate if the IOPMP always fails write transactions
+
+### HWCFG0 . no_x
+For chk_x=1, the IOPMP with no_x=1 always fails 
+execution transactions; otherwise, it should depend
+on the per-entry x-bit. For chk_x=0, no_x has no
+effect.
+
+### HWCFG0 . chk_x
+Indicate if the IOPMP checks execution violations
+
+### HWCFG0 . sid_transl_prog
+A sticky bit to indicate if sid_transl is programmable.
+
+### HWCFG0 . sid_transl_en
+Indicate the if tagging a new SID on the initiator port is supported
+
+### HWCFG0 . prient_prog
+A sticky bit to indicate if prio_entry is programmable.
+
+### HWCFG0 . user_cfg_en
+Indicate the if user customized attributes is supported.
+
+### HWCFG0 . sps_en
+Indicate the secondary permission settings is supported.
+
+### HWCFG0 . tor_en
+Indicate if TOR is supported.
+
+### HWCFG0 . model
+Indicate the iopmp instance model
+
+| Value   | Name      | Description                                                                                            |
+|:--------|:----------|:-------------------------------------------------------------------------------------------------------|
+| 0x0     | Full      | The number of MDCFG registers is equal to HWCFG.md_num, all MDCFG registers are readable and writable  |
+| 0x1     | Rapid-k   | A single MDCFG register to indicate the k value, read only                                             |
+| 0x2     | Dynamic-k | A single MDCFG register to indicate the k value, readable and writable.                                |
+| 0x3     | Isolation | the number of MDCFG registers is equal to HWCFG.md_num, all MDCFG registers are readable and writable. |
+| 0x4     | Compact-k | a single MDCFG register to indicate the k value, read only.                                            |
+
+Other values are reserved.
+
+## HWCFG1
+Indicates the configurations of current IOPMP instance
+- Offset: `0xc`
+- Reset default: `0x200008`
+- Reset mask: `0xffffffff`
+
+### Fields
+
+```wavejson
+{"reg": [{"name": "sid_num", "bits": 16, "attr": ["ro"], "rotate": 0}, {"name": "entry_num", "bits": 16, "attr": ["ro"], "rotate": 0}], "config": {"lanes": 1, "fontsize": 10, "vspace": 80}}
+```
+
+|  Bits  |  Type  |  Reset  | Name      | Description                                               |
+|:------:|:------:|:-------:|:----------|:----------------------------------------------------------|
+| 31:16  |   ro   |  0x20   | entry_num | Indicate the supported number of entries in the instance. |
+|  15:0  |   ro   |   0x8   | sid_num   | Indicate the supported number of SID in the instance.     |
+
+## HWCFG2
+Indicates the configurations of current IOPMP instance
+- Offset: `0x10`
+- Reset default: `0x0`
+- Reset mask: `0xffffffff`
+
+### Fields
+
+```wavejson
+{"reg": [{"name": "prio_entry", "bits": 16, "attr": ["rw"], "rotate": 0}, {"name": "sid_transl", "bits": 16, "attr": ["rw"], "rotate": 0}], "config": {"lanes": 1, "fontsize": 10, "vspace": 80}}
+```
+
+|  Bits  |  Type  |  Reset  | Name       | Description                                                                                                                                                        |
+|:------:|:------:|:-------:|:-----------|:-------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| 31:16  |   rw   |   0x0   | sid_transl | The SID tagged to outgoing transactions. Support only for sid_transl_en=1.                                                                                         |
+|  15:0  |   rw   |   0x0   | prio_entry | Indicate the number of entries matched with priority. These rules should be placed in the lowest order. Within these rules, the lower order has a higher priority. |
+
+## ENTRY_OFFSET
+Indicates the internal address offsets of each table.
+- Offset: `0x14`
+- Reset default: `0x2000`
+- Reset mask: `0xffffffff`
+
+### Fields
+
+```wavejson
+{"reg": [{"name": "OFFSET", "bits": 32, "attr": ["ro"], "rotate": 0}], "config": {"lanes": 1, "fontsize": 10, "vspace": 80}}
+```
+
+|  Bits  |  Type  |  Reset  | Name   | Description                                                                                               |
+|:------:|:------:|:-------:|:-------|:----------------------------------------------------------------------------------------------------------|
+|  31:0  |   ro   | 0x2000  | OFFSET | Indicate the offset address of the IOPMP array from the base of an IOPMP instance. Can be a signed value. |
+
+## ERRREACT
+Indicates errors events in the IOPMP IP.
+- Offset: `0x18`
+- Reset default: `0x0`
+- Reset mask: `0xf0000ff3`
+
+### Fields
+
+```wavejson
+{"reg": [{"name": "l", "bits": 1, "attr": ["rw1ss"], "rotate": -90}, {"name": "ie", "bits": 1, "attr": ["rw"], "rotate": -90}, {"bits": 2}, {"name": "ire", "bits": 1, "attr": ["rw"], "rotate": -90}, {"name": "rre", "bits": 3, "attr": ["rw"], "rotate": 0}, {"name": "iwe", "bits": 1, "attr": ["rw"], "rotate": -90}, {"name": "rwe", "bits": 3, "attr": ["rw"], "rotate": 0}, {"bits": 16}, {"name": "pee", "bits": 1, "attr": ["rw"], "rotate": -90}, {"name": "rpe", "bits": 3, "attr": ["rw"], "rotate": 0}], "config": {"lanes": 1, "fontsize": 10, "vspace": 80}}
+```
+
+|  Bits  |  Type  |  Reset  | Name   | Description                                                                                                                                                                                                                               |
+|:------:|:------:|:-------:|:-------|:------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| 31:29  |   rw   |   0x0   | rpe    | Response on prefetch illegal access:  - 0x0: respond a bus error - 0x1: respond a decode error - 0x2~0x7: user defined                                                                                                                    |
+|   28   |   rw   |   0x0   | pee    | Enable to differentiate between a prefetch access and an illegal access                                                                                                                                                                   |
+| 27:12  |        |         |        | Reserved                                                                                                                                                                                                                                  |
+|  11:9  |   rw   |   0x0   | rwe    | Response on write illegal access:  - 0x0: respond a bus error - 0x1: respond a decode error - 0x2: respond a success - 0x3~0x7: user defined                                                                                              |
+|   8    |   rw   |   0x0   | iwe    | To trigger the interrupt on illegal write if ie = 1                                                                                                                                                                                       |
+|  7:5   |   rw   |   0x0   | rre    | Response on read illegal access:  - 0x0: respond a bus error - 0x1: respond a decode error - 0x2: respond a success with data, all of which are zeros. - 0x3: respond a success with data, all of which are ones. - 0x4~0x7: user defined |
+|   4    |   rw   |   0x0   | ire    | To trigger the interrupt on illegal read if ie = 1                                                                                                                                                                                        |
+|  3:2   |        |         |        | Reserved                                                                                                                                                                                                                                  |
+|   1    |   rw   |   0x0   | ie     | Enable the interrupt of the IOPMP.                                                                                                                                                                                                        |
+|   0    | rw1ss  |   0x0   | l      | Lock fields to ERRREACT register except ip.                                                                                                                                                                                               |
+
+## MDCFGLCK
+Lock Register for MDCFG table.
+- Offset: `0x48`
+- Reset default: `0x0`
+- Reset mask: `0xff`
+
+### Fields
+
+```wavejson
+{"reg": [{"name": "l", "bits": 1, "attr": ["rw1ss"], "rotate": -90}, {"name": "f", "bits": 7, "attr": ["rw"], "rotate": 0}, {"bits": 24}], "config": {"lanes": 1, "fontsize": 10, "vspace": 80}}
+```
+
+|  Bits  |  Type  |  Reset  | Name   | Description                                                                                                                               |
+|:------:|:------:|:-------:|:-------|:------------------------------------------------------------------------------------------------------------------------------------------|
+|  31:8  |        |         |        | Reserved                                                                                                                                  |
+|  7:1   |   rw   |   0x0   | f      | Indicate the number of locked MDCFG entries, MDCFG entry[f-1:0] is locked. SW shall write a value that is no smaller than current number. |
+|   0    | rw1ss  |   0x0   | l      | Lock bit to MDLCK and MDLCKH register                                                                                                     |
+
+## ENTRYLCK
+Lock register for entry array.
+- Offset: `0x4c`
+- Reset default: `0x0`
+- Reset mask: `0x1ffff`
+
+### Fields
+
+```wavejson
+{"reg": [{"name": "l", "bits": 1, "attr": ["rw1ss"], "rotate": -90}, {"name": "f", "bits": 16, "attr": ["rw"], "rotate": 0}, {"bits": 15}], "config": {"lanes": 1, "fontsize": 10, "vspace": 80}}
+```
+
+|  Bits  |  Type  |  Reset  | Name   | Description                                                                                                                              |
+|:------:|:------:|:-------:|:-------|:-----------------------------------------------------------------------------------------------------------------------------------------|
+| 31:17  |        |         |        | Reserved                                                                                                                                 |
+|  16:1  |   rw   |   0x0   | f      | Indicate the number of locked IOPMP entries IOPMP_ENTRY[f-1:0] is locked. SW shall write a value that is no smaller than current number. |
+|   0    | rw1ss  |   0x0   | l      | Lock bit to ENTRYLCK register.                                                                                                           |
+
+## ERR_REQINFO
+Captures more detailed error infomation.
+- Offset: `0x60`
+- Reset default: `0x0`
+- Reset mask: `0x77`
+
+### Fields
+
+```wavejson
+{"reg": [{"name": "ip", "bits": 1, "attr": ["rw1c"], "rotate": -90}, {"name": "ttype", "bits": 2, "attr": ["ro"], "rotate": -90}, {"bits": 1}, {"name": "etype", "bits": 3, "attr": ["ro"], "rotate": -90}, {"bits": 25}], "config": {"lanes": 1, "fontsize": 10, "vspace": 80}}
+```
+
+|  Bits  |  Type  |  Reset  | Name                         |
+|:------:|:------:|:-------:|:-----------------------------|
+|  31:7  |        |         | Reserved                     |
+|  6:4   |   ro   |   0x0   | [etype](#err_reqinfo--etype) |
+|   3    |        |         | Reserved                     |
+|  2:1   |   ro   |   0x0   | [ttype](#err_reqinfo--ttype) |
+|   0    |  rw1c  |   0x0   | [ip](#err_reqinfo--ip)       |
+
+### ERR_REQINFO . etype
+Indicated if it’s a read, write or user field violation.
+- 0x0 = read error
+- 0x1 = write error
+- 0x3 = user_attr error.
+- 0x04 = partial hit on a priority rule
+- 0x05 = not hit any rule
+- 0x06 = unknown SID
+- 0x07 = user-defined error
+
+### ERR_REQINFO . ttype
+Indicated the transaction type
+      • 0x00 = reserved
+      • 0x01 = read
+      • 0x02 = write
+      • 0x03 = execution
+
+### ERR_REQINFO . ip
+| Field      | Bit   | R/W |                   Description                       | 
+| ip         | 31:30 | W   | Write 1 clears the bit and the illegal recorder     |
+|            |       |     | reactivates. Write 0 causes no effect on the bit.   |
+| ip         | 31:30 | R   | Indicate if an interrupt is pending on read. for 1, | 
+|            |       |     |  the illegal capture recorder (ERR_REQID,           |
+|            |       |     |  ERR_REQADDR, ERR_REQADDRH, and fields in this      |
+|            |       |     |  register) has valid content and won’t be updated   |
+|            |       |     |  even on subsequent violations.                     |
+
+## ERR_REQID
+Indicate the errored SID and entry index.
+- Offset: `0x64`
+- Reset default: `0x0`
+- Reset mask: `0xffffffff`
+
+### Fields
+
+```wavejson
+{"reg": [{"name": "sid", "bits": 16, "attr": ["ro"], "rotate": 0}, {"name": "eid", "bits": 16, "attr": ["ro"], "rotate": 0}], "config": {"lanes": 1, "fontsize": 10, "vspace": 80}}
+```
+
+|  Bits  |  Type  |  Reset  | Name   | Description                       |
+|:------:|:------:|:-------:|:-------|:----------------------------------|
+| 31:16  |   ro   |   0x0   | eid    | Indicate the errored entry index. |
+|  15:0  |   ro   |   0x0   | sid    | Indicate the errored SID.         |
+
+## ERR_REQADDR
+Indicate the errored request address low bits.
+- Offset: `0x68`
+- Reset default: `0x0`
+- Reset mask: `0xffffffff`
+
+### Fields
+
+```wavejson
+{"reg": [{"name": "addr", "bits": 32, "attr": ["ro"], "rotate": 0}], "config": {"lanes": 1, "fontsize": 10, "vspace": 80}}
+```
+
+|  Bits  |  Type  |  Reset  | Name   | Description                            |
+|:------:|:------:|:-------:|:-------|:---------------------------------------|
+|  31:0  |   ro   |   0x0   | addr   | Indicate the errored address low bits. |
+
+## ERR_REQADDRH
+Indicate the errored request address low bits.
+- Offset: `0x6c`
+- Reset default: `0x0`
+- Reset mask: `0xffffffff`
+
+### Fields
+
+```wavejson
+{"reg": [{"name": "addrh", "bits": 32, "attr": ["ro"], "rotate": 0}], "config": {"lanes": 1, "fontsize": 10, "vspace": 80}}
+```
+
+|  Bits  |  Type  |  Reset  | Name   | Description                             |
+|:------:|:------:|:-------:|:-------|:----------------------------------------|
+|  31:0  |   ro   |   0x0   | addrh  | Indicate the errored address high bits. |
+
+## MDCFG
+MDCFG table is a lookup to specify the number of IOPMP entries that is associated with each MD.
+- Offset: `0x800`
+- Reset default: `0x0`
+- Reset mask: `0xffff`
+
+### Fields
+
+```wavejson
+{"reg": [{"name": "t", "bits": 16, "attr": ["rw"], "rotate": 0}, {"bits": 16}], "config": {"lanes": 1, "fontsize": 10, "vspace": 80}}
+```
+
+|  Bits  |  Type  |  Reset  | Name           |
+|:------:|:------:|:-------:|:---------------|
+| 31:16  |        |         | Reserved       |
+|  15:0  |   rw   |   0x0   | [t](#mdcfg--t) |
+
+### MDCFG . t
+- Indicate the top range of memory domain m. An IOPMP entry with index j belongs to MD m
+- If MDCFG(m-1).t ≤ j < MDCFG(m).t, where m>0. The MD0 owns the IOPMP entries with index j<MD0CFG.t.
+- If MDCFG(m-1).t >= MDCFG(m).t, then MD m is empty.
+- For rapid-k, dynamic-k and compact-k models, t indicates the number of IOPMP entries belongs to each MD.
+
+## SRCMD_EN
+Bitmapped MD enable register low bits.
+- Offset: `0x1000`
+- Reset default: `0x0`
+- Reset mask: `0xffffffff`
+
+### Fields
+
+```wavejson
+{"reg": [{"name": "l", "bits": 1, "attr": ["rw1ss"], "rotate": -90}, {"name": "md", "bits": 31, "attr": ["rw"], "rotate": 0}], "config": {"lanes": 1, "fontsize": 10, "vspace": 80}}
+```
+
+|  Bits  |  Type  |  Reset  | Name   | Description                                                      |
+|:------:|:------:|:-------:|:-------|:-----------------------------------------------------------------|
+|  31:1  |   rw   |   0x0   | md     | md[j] = 1 indicates md j is associated with SID .                |
+|   0    | rw1ss  |   0x0   | l      | A sticky lock bit. When set, locks SRCMD_EN, SRCMD_R and SRCMD_W |
+
+## SRCMD_ENH
+Bitmapped MD enable register high bits.
+- Offset: `0x1004`
+- Reset default: `0x0`
+- Reset mask: `0xffffffff`
+
+### Fields
+
+```wavejson
+{"reg": [{"name": "mdh", "bits": 32, "attr": ["rw"], "rotate": 0}], "config": {"lanes": 1, "fontsize": 10, "vspace": 80}}
+```
+
+|  Bits  |  Type  |  Reset  | Name   | Description                                             |
+|:------:|:------:|:-------:|:-------|:--------------------------------------------------------|
+|  31:0  |   rw   |   0x0   | mdh    | mdh[j] = 1 indicates (md j+31) is associated with SID . |
+
+## ENTRY_ADDR
+IOPMP entrie number  low bits of physical address of protected memory region
+- Offset: `0x2000`
+- Reset default: `0x0`
+- Reset mask: `0xffffffff`
+
+### Fields
+
+```wavejson
+{"reg": [{"name": "addr", "bits": 32, "attr": ["rw"], "rotate": 0}], "config": {"lanes": 1, "fontsize": 10, "vspace": 80}}
+```
+
+|  Bits  |  Type  |  Reset  | Name   | Description                                                       |
+|:------:|:------:|:-------:|:-------|:------------------------------------------------------------------|
+|  31:0  |   rw   |   0x0   | addr   | The low bits physical address of protected memory region entrie . |
+
+## ENTRY_ADDRH
+IOPMP entrie number  high bits of physical address of protected memory region
+- Offset: `0x2004`
+- Reset default: `0x0`
+- Reset mask: `0xffffffff`
+
+### Fields
+
+```wavejson
+{"reg": [{"name": "addrh", "bits": 32, "attr": ["rw"], "rotate": 0}], "config": {"lanes": 1, "fontsize": 10, "vspace": 80}}
+```
+
+|  Bits  |  Type  |  Reset  | Name   | Description                                                        |
+|:------:|:------:|:-------:|:-------|:-------------------------------------------------------------------|
+|  31:0  |   rw   |   0x0   | addrh  | The high bits physical address of protected memory region entrie . |
+
+## ENTRY_CFG
+IOPMP entrie number  configuration register.
+- Offset: `0x2008`
+- Reset default: `0x0`
+- Reset mask: `0x1f`
+
+### Fields
+
+```wavejson
+{"reg": [{"name": "r", "bits": 1, "attr": ["rw"], "rotate": -90}, {"name": "w", "bits": 1, "attr": ["rw"], "rotate": -90}, {"name": "x", "bits": 1, "attr": ["rw"], "rotate": -90}, {"name": "a", "bits": 2, "attr": ["rw"], "rotate": 0}, {"bits": 27}], "config": {"lanes": 1, "fontsize": 10, "vspace": 80}}
+```
+
+|  Bits  |  Type  |  Reset  | Name   | Description                                                                          |
+|:------:|:------:|:-------:|:-------|:-------------------------------------------------------------------------------------|
+|  31:5  |        |         |        | Reserved                                                                             |
+|  4:3   |   rw   |   0x0   | a      | The address mode of the IOPMP entry :  - 0x0: OFF - 0x1: TOR - 0x2: NA4 - 0x3: NAPOT |
+|   2    |   rw   |   0x0   | x      | The execute permission to protected memory region entrie                             |
+|   1    |   rw   |   0x0   | w      | The write permission to protected memory region entrie                               |
+|   0    |   rw   |   0x0   | r      | The read permission to protected memory region entrie                                |
+
