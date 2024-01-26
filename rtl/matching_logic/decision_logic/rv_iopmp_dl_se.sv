@@ -23,8 +23,8 @@ module rv_iopmp_dl_se #(
 
 logic [2:0] entry_access;
 
-/* verilator lint_off WIDTHTRUNC */
-/* verilator lint_off WIDTHEXPAND */
+// Disabled verilator lint_off WIDTHTRUNC
+// Disabled verilator lint_off WIDTHEXPAND
 always_comb begin
     allow_transaction_o = 0;
     entry_access = 0;
@@ -66,7 +66,7 @@ always_comb begin
         end
     end
 end
-/* verilator lint_on WIDTHTRUNC */
-/* verilator lint_on WIDTHEXPAND */
+// Disabled verilator lint_on WIDTHTRUNC
+// Disabled verilator lint_on WIDTHEXPAND
 
 endmodule

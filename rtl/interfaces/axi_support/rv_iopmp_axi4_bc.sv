@@ -18,7 +18,7 @@
 //              Checks whether an AXI transaction crosses a 4-kiB address boundary, 
 //              which is illegal in AXI4 transactions.
 
-/* verilator lint_off WIDTH */
+// Disabled verilator lint_off WIDTH
 
 module rv_iopmp_axi4_bc (
     // AxVALID
@@ -116,4 +116,4 @@ end
 
 endmodule
 
-/* verilator lint_on WIDTH */
+// Disabled verilator lint_on WIDTH
