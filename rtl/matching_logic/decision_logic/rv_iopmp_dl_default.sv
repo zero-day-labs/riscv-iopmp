@@ -26,7 +26,10 @@ module rv_iopmp_dl_default #(
     output logic [15:0] err_entry_index_o
 );
 
-logic [2:0] entry_access;
+logic [2:0]  entry_access;
+logic [63:0] srcmd_en;
+
+assign srcmd_en = {srcmd_table_i[sid_i].enh, srcmd_table_i[sid_i].en.md};
 
 // Disabled verilator lint_off WIDTHTRUNC
 // Disabled verilator lint_off WIDTHEXPAND
@@ -56,7 +59,7 @@ always_comb begin
                 // Go trough every memory domain and entries possible
                 for(integer i = 0; i < NUMBER_MDS; i++) begin
                     // Check if current MD belongs to SID, only belonging entries should report errors
-                    if({srcmd_table_i[sid_i].enh, srcmd_table_i[sid_i].en.md}[i]) begin
+                    if(srcmd_en[i]) begin
                         for(integer j = 0; j < NUMBER_ENTRIES; j++) begin
                             // Check if current entry belongs to MD j
                             if((i == 0 & j < mdcfg_table_i[i]) | (j < mdcfg_table_i[i] & j >= mdcfg_table_i[i-1])) begin 
