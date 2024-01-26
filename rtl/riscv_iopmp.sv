@@ -27,7 +27,6 @@ module riscv_iopmp #(
     parameter int unsigned NUMBER_MDS      = 2,
     parameter int unsigned NUMBER_ENTRIES  = 8,
     parameter int unsigned NUMBER_MASTERS  = 2,
-    parameter int unsigned SID_WIDTH       = $clog2(NUMBER_MASTERS),
     parameter int unsigned NUMBER_TL_INSTANCES = 1
 
 ) (
@@ -50,6 +49,7 @@ module riscv_iopmp #(
 );
 
 localparam int unsigned NumberMds = (NUMBER_MASTERS == 1) ? 1 : NUMBER_MDS;
+localparam int unsigned SidWidth  = (NUMBER_MASTERS == 1) ? 1 : $clog2(NUMBER_MASTERS);
 
 reg_req_t cfg_reg_req;
 reg_rsp_t cfg_reg_rsp;
@@ -63,7 +63,7 @@ rv_iopmp_pkg::iopmp_entry_t [NUMBER_ENTRIES - 1:0] entry_table;
 logic                         transaction_en[NUMBER_TL_INSTANCES];
 logic [ADDR_WIDTH - 1:0]                addr[NUMBER_TL_INSTANCES];
 logic [$clog2(DATA_WIDTH/8) :0]    num_bytes[NUMBER_TL_INSTANCES];
-logic [SID_WIDTH     - 1:0]              sid[NUMBER_TL_INSTANCES];
+logic [SidWidth     - 1:0]              sid[NUMBER_TL_INSTANCES];
 rv_iopmp_pkg::access_t                         access_type[NUMBER_TL_INSTANCES];
 
 logic [NUMBER_TL_INSTANCES - 1:0]           allow_transaction_arr;
@@ -125,7 +125,7 @@ generate
     for (i = 0; i < NUMBER_TL_INSTANCES; i++) begin : gen_iopmp
         rv_iopmp_transaction_logic #(
             .ADDR_WIDTH(ADDR_WIDTH),
-            .SID_WIDTH (SID_WIDTH),  // The signal which connects to the SID is the user field
+            .SID_WIDTH (SidWidth),  // The signal which connects to the SID is the user field
             .NUMBER_MDS(NumberMds),
             .NUMBER_ENTRIES(NUMBER_ENTRIES),
             .NUMBER_MASTERS(NUMBER_MASTERS)
@@ -155,7 +155,7 @@ endgenerate
 
 rv_iopmp_data_abstractor_axi #(
     .ADDR_WIDTH(ADDR_WIDTH),
-    .SID_WIDTH (SID_WIDTH),
+    .SID_WIDTH (SidWidth),
     .DATA_WIDTH(DATA_WIDTH),
     .ID_WIDTH(ID_WIDTH),
     // AXI request/response
