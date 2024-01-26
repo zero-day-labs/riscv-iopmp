@@ -1270,42 +1270,42 @@ module rv_iopmp_regmap #(
 
  logic [ADDR_HIT_SIZE - 1 : 0] addr_hit;
   // Mandatory registers
-  assign addr_hit[  0] = (reg_addr == IOPMP_VERSION_OFFSET);
-  assign addr_hit[  1] = (reg_addr == IOPMP_IMP_OFFSET);
-  assign addr_hit[  2] = (reg_addr == IOPMP_HWCFG0_OFFSET);
-  assign addr_hit[  3] = (reg_addr == IOPMP_HWCFG1_OFFSET);
-  assign addr_hit[  4] = (reg_addr == IOPMP_HWCFG2_OFFSET);
-  assign addr_hit[  5] = (reg_addr == IOPMP_ENTRY_OFFSET_OFFSET);
-  assign addr_hit[  6] = (reg_addr == IOPMP_ERRREACT_OFFSET);
-  assign addr_hit[  7] = (reg_addr == IOPMP_MDCFGLCK_OFFSET);
-  assign addr_hit[  8] = (reg_addr == IOPMP_ENTRYLCK_OFFSET);
-  assign addr_hit[  9] = (reg_addr == IOPMP_ERR_REQINFO_OFFSET);
-  assign addr_hit[ 10] = (reg_addr == IOPMP_ERR_REQID_OFFSET);
-  assign addr_hit[ 11] = (reg_addr == IOPMP_ERR_REQADDR_OFFSET);
-  assign addr_hit[ 12] = (reg_addr == IOPMP_ERR_REQADDRH_OFFSET);
+  assign addr_hit[  0] = (reg_addr == rv_iopmp_reg_pkg::IOPMP_VERSION_OFFSET);
+  assign addr_hit[  1] = (reg_addr == rv_iopmp_reg_pkg::IOPMP_IMP_OFFSET);
+  assign addr_hit[  2] = (reg_addr == rv_iopmp_reg_pkg::IOPMP_HWCFG0_OFFSET);
+  assign addr_hit[  3] = (reg_addr == rv_iopmp_reg_pkg::IOPMP_HWCFG1_OFFSET);
+  assign addr_hit[  4] = (reg_addr == rv_iopmp_reg_pkg::IOPMP_HWCFG2_OFFSET);
+  assign addr_hit[  5] = (reg_addr == rv_iopmp_reg_pkg::IOPMP_ENTRY_OFFSET_OFFSET);
+  assign addr_hit[  6] = (reg_addr == rv_iopmp_reg_pkg::IOPMP_ERRREACT_OFFSET);
+  assign addr_hit[  7] = (reg_addr == rv_iopmp_reg_pkg::IOPMP_MDCFGLCK_OFFSET);
+  assign addr_hit[  8] = (reg_addr == rv_iopmp_reg_pkg::IOPMP_ENTRYLCK_OFFSET);
+  assign addr_hit[  9] = (reg_addr == rv_iopmp_reg_pkg::IOPMP_ERR_REQINFO_OFFSET);
+  assign addr_hit[ 10] = (reg_addr == rv_iopmp_reg_pkg::IOPMP_ERR_REQID_OFFSET);
+  assign addr_hit[ 11] = (reg_addr == rv_iopmp_reg_pkg::IOPMP_ERR_REQADDR_OFFSET);
+  assign addr_hit[ 12] = (reg_addr == rv_iopmp_reg_pkg::IOPMP_ERR_REQADDRH_OFFSET);
 
   //generate
   for (genvar i = 0; i < NUMBER_MDS; i++) begin
-    assign addr_hit[13+i]   = (reg_addr == (IOPMP_MDCFG_OFFSET + i*4)); // 4 bytes
+    assign addr_hit[13+i]   = (reg_addr == (rv_iopmp_reg_pkg::IOPMP_MDCFG_OFFSET + i*4)); // 4 bytes
   end
 
   // En low
   for (genvar i = 0; i < NUMBER_MASTERS; i++)
-    assign addr_hit[ADDR_HIT_SRCMD_EN_OFFSET + i] = (reg_addr == (IOPMP_SRCMD_EN_OFFSET + i * 32));     // 32 bytes as per spec
+    assign addr_hit[ADDR_HIT_SRCMD_EN_OFFSET + i] = (reg_addr == (rv_iopmp_reg_pkg::IOPMP_SRCMD_EN_OFFSET + i * 32));     // 32 bytes as per spec
 
   // En high
   for (genvar i = 0; i < NUMBER_MASTERS; i++)
-    assign addr_hit[ADDR_HIT_SRCMD_ENH_OFFSET + i] = (reg_addr == (IOPMP_SRCMD_EN_OFFSET + i * 32 + 4)); // 4 bytes
+    assign addr_hit[ADDR_HIT_SRCMD_ENH_OFFSET + i] = (reg_addr == (rv_iopmp_reg_pkg::IOPMP_SRCMD_EN_OFFSET + i * 32 + 4)); // 4 bytes
 
 
   for (genvar i = 0; i < NUMBER_ENTRIES; i++)
-    assign addr_hit[ADDR_HIT_ENTRY_ADDR_OFFSET + i] = (reg_addr == (IOPMP_ENTRY_ADDR_OFFSET + i * 16)); // 16 bytes as per spec
+    assign addr_hit[ADDR_HIT_ENTRY_ADDR_OFFSET + i] = (reg_addr == (rv_iopmp_reg_pkg::IOPMP_ENTRY_ADDR_OFFSET + i * 16)); // 16 bytes as per spec
 
   for (genvar i = 0; i < NUMBER_ENTRIES; i++)
-    assign addr_hit[ADDR_HIT_ENTRY_ADDRH_OFFSET + i] = (reg_addr == (IOPMP_ENTRY_ADDR_OFFSET + i * 16 + 4)); // 4 bytes
+    assign addr_hit[ADDR_HIT_ENTRY_ADDRH_OFFSET + i] = (reg_addr == (rv_iopmp_reg_pkg::IOPMP_ENTRY_ADDR_OFFSET + i * 16 + 4)); // 4 bytes
 
   for (genvar i = 0; i < NUMBER_ENTRIES; i++)
-    assign addr_hit[ADDR_HIT_ENTRY_CFG_OFFSET + i] = (reg_addr == (IOPMP_ENTRY_ADDR_OFFSET + i * 16 + 8)); // 4 bytes
+    assign addr_hit[ADDR_HIT_ENTRY_CFG_OFFSET + i] = (reg_addr == (rv_iopmp_reg_pkg::IOPMP_ENTRY_ADDR_OFFSET + i * 16 + 8)); // 4 bytes
 
   //endgenerate
 
@@ -1317,31 +1317,31 @@ module rv_iopmp_regmap #(
   //generate gen_wr_err_array
   // Mandatory registers
   for (genvar i = 0; i < 13; i++) begin
-    assign wr_err_array[i] = (addr_hit[i] & (|(IOPMP_PERMIT[i] & ~reg_be)));
+    assign wr_err_array[i] = (addr_hit[i] & (|(rv_iopmp_reg_pkg::IOPMP_PERMIT[i] & ~reg_be)));
   end
 
   for (genvar i = 13; i < NUMBER_MDS; i++) begin
-    assign wr_err_array[i] = (addr_hit[i] & (|(IOPMP_PERMIT[13] & ~reg_be)));
+    assign wr_err_array[i] = (addr_hit[i] & (|(rv_iopmp_reg_pkg::IOPMP_PERMIT[13] & ~reg_be)));
   end
 
   for (genvar i = ADDR_HIT_SRCMD_EN_OFFSET; i < NUMBER_MASTERS; i++) begin
-    assign wr_err_array[i] = (addr_hit[i] & (|(IOPMP_PERMIT[14] & ~reg_be)));
+    assign wr_err_array[i] = (addr_hit[i] & (|(rv_iopmp_reg_pkg::IOPMP_PERMIT[14] & ~reg_be)));
   end
 
   for (genvar i = ADDR_HIT_SRCMD_ENH_OFFSET; i < NUMBER_MASTERS; i++) begin
-    assign wr_err_array[i] = (addr_hit[i] & (|(IOPMP_PERMIT[15] & ~reg_be)));
+    assign wr_err_array[i] = (addr_hit[i] & (|(rv_iopmp_reg_pkg::IOPMP_PERMIT[15] & ~reg_be)));
   end
 
   for (genvar i = ADDR_HIT_ENTRY_ADDR_OFFSET; i < NUMBER_ENTRIES; i++) begin
-    assign wr_err_array[i] = (addr_hit[i] & (|(IOPMP_PERMIT[16] & ~reg_be)));
+    assign wr_err_array[i] = (addr_hit[i] & (|(rv_iopmp_reg_pkg::IOPMP_PERMIT[16] & ~reg_be)));
   end
 
   for (genvar i = ADDR_HIT_ENTRY_ADDRH_OFFSET; i < NUMBER_ENTRIES; i++) begin
-    assign wr_err_array[i] = (addr_hit[i] & (|(IOPMP_PERMIT[17] & ~reg_be)));
+    assign wr_err_array[i] = (addr_hit[i] & (|(rv_iopmp_reg_pkg::IOPMP_PERMIT[17] & ~reg_be)));
   end
 
   for (genvar i = ADDR_HIT_ENTRY_CFG_OFFSET; i < NUMBER_ENTRIES; i++) begin
-    assign wr_err_array[i] = (addr_hit[i] & (|(IOPMP_PERMIT[18] & ~reg_be)));
+    assign wr_err_array[i] = (addr_hit[i] & (|(rv_iopmp_reg_pkg::IOPMP_PERMIT[18] & ~reg_be)));
   end
 
   //endgenerate
