@@ -41,7 +41,7 @@ module rv_iopmp_data_abstractor_axi #(
     output logic [ADDR_WIDTH - 1:0]                addr_o,
     output logic [$clog2(DATA_WIDTH/8) :0]    num_bytes_o,
     output logic [SID_WIDTH     - 1:0]              sid_o,
-    output access_t                         access_type_o,
+    output rv_iopmp_pkg::access_t                         access_type_o,
 
     input  logic iopmp_allow_transaction_i
 );

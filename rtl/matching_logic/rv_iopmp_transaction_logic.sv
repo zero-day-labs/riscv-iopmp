@@ -1,9 +1,6 @@
 // Author:      Luís Cunha
 // Description: IOPMP draft5
 
-import rv_iopmp_pkg::*;
-import rv_iopmp_reg_pkg::*;
-
 module rv_iopmp_transaction_logic #(
     // width of address bus in bits
     parameter int unsigned ADDR_WIDTH     = 64,
@@ -23,21 +20,21 @@ module rv_iopmp_transaction_logic #(
     input  logic     rst_ni,
 
     input logic iopmp_enabled_i,
-    input mdcfg_entry_t [NUMBER_MDS - 1:0]     mdcfg_table_i,
-    input srcmd_entry_t [NUMBER_MASTERS - 1:0] srcmd_table_i,
-    input iopmp_entry_t [NUMBER_ENTRIES - 1:0] entry_table_i,
+    input rv_iopmp_pkg::mdcfg_entry_t [NUMBER_MDS - 1:0]     mdcfg_table_i,
+    input rv_iopmp_pkg::srcmd_entry_t [NUMBER_MASTERS - 1:0] srcmd_table_i,
+    input rv_iopmp_pkg::iopmp_entry_t [NUMBER_ENTRIES - 1:0] entry_table_i,
 
     // Transaction
     input logic                          transaction_en_i,
     input logic [ADDR_WIDTH - 1:0]                 addr_i,
     input logic [$clog2(DATA_WIDTH/8) :0]     num_bytes_i,
     input logic [SID_WIDTH     - 1:0]               sid_i,
-    input access_t                          access_type_i,
+    input rv_iopmp_pkg::access_t                          access_type_i,
 
     output logic                           allow_transaction_o,
 
     // Error interface
-    output error_capture_t err_interface_o
+    output rv_iopmp_pkg::error_capture_t err_interface_o
 );
 
 // IOPMP Logic signals
@@ -55,7 +52,7 @@ logic                            transaction_en;
 logic [ADDR_WIDTH - 1 : 0]       addr_to_check;
 logic [$clog2(DATA_WIDTH/8) :0]  num_bytes;
 logic [SID_WIDTH - 1:0]          sid;
-access_t                         access_type;
+rv_iopmp_pkg::access_t                         access_type;
 
 assign allow_transaction_o = allow_transaction;
 

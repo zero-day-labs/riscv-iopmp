@@ -1,7 +1,5 @@
 package rv_iopmp_pkg;
 
-import rv_iopmp_reg_pkg::*;
-
 //  IOPMP Mode
 typedef enum logic [1:0] {
     OFF   = 2'b00,
@@ -24,9 +22,9 @@ typedef struct packed {
     logic [1:0]                         ttype;
     logic [2:0]                         etype;
 
-    iopmp_reg2hw_err_reqid_reg_t     err_reqid;
-    iopmp_reg2hw_err_reqaddr_reg_t   err_reqaddr;
-    iopmp_reg2hw_err_reqaddrh_reg_t  err_reqaddrh;
+    rv_iopmp_reg_pkg::iopmp_reg2hw_err_reqid_reg_t     err_reqid;
+    rv_iopmp_reg_pkg::iopmp_reg2hw_err_reqaddr_reg_t   err_reqaddr;
+    rv_iopmp_reg_pkg::iopmp_reg2hw_err_reqaddrh_reg_t  err_reqaddrh;
 } error_capture_t;
 
 

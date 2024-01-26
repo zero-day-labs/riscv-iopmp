@@ -21,8 +21,6 @@ module rv_iopmp_entry #(
     output logic allow_o            // The requested transaction matches all the bytes of the entry?
 );
 
-import rv_iopmp_pkg::*;
-
 logic [LEN*2-1:0] entry_addr;
 logic [LEN*2-1:0] previous_entry_addr;
 
