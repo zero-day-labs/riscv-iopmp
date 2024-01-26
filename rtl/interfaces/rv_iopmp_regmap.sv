@@ -35,9 +35,6 @@ module rv_iopmp_regmap #(
   input devmode_i // If 1, explicit error return for unmapped register access
 );
 
-  import rv_iopmp_reg_pkg::* ;
-  import rv_iopmp_pkg::* ;
-
   localparam int DW = 32;
   localparam int DBW = DW/8;                    // Byte Width
 
@@ -165,9 +162,9 @@ module rv_iopmp_regmap #(
   logic [31:0] err_reqaddrh_qs;
 
   // Actual tables
-  mdcfg_entry_t [NUMBER_MDS     - 1: 0] mdcfg_table;
-  srcmd_entry_t [NUMBER_MASTERS - 1: 0] srcmd_table;
-  iopmp_entry_t [NUMBER_ENTRIES - 1: 0] entry_table;
+  rv_iopmp_pkg::mdcfg_entry_t [NUMBER_MDS     - 1: 0] mdcfg_table;
+  rv_iopmp_pkg::srcmd_entry_t [NUMBER_MASTERS - 1: 0] srcmd_table;
+  rv_iopmp_pkg::iopmp_entry_t [NUMBER_ENTRIES - 1: 0] entry_table;
 
   assign mdcfg_table_o = mdcfg_table;
   assign srcmd_table_o = srcmd_table;

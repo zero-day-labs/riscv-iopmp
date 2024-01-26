@@ -16,7 +16,7 @@ module rv_iopmp_regmap_wrapper #(
     input  reg_req_t cfg_reg_req_i,
     output reg_rsp_t cfg_reg_rsp_o,
 
-    input error_capture_t [NUMBER_IOPMP_INSTANCES - 1 : 0] err_interface_i,
+    input rv_iopmp_pkg::error_capture_t [NUMBER_IOPMP_INSTANCES - 1 : 0] err_interface_i,
 
     output logic iopmp_enabled_o,
     output rv_iopmp_pkg::mdcfg_entry_t [NUMBER_MDS     - 1:0] mdcfg_table_o,
@@ -28,11 +28,9 @@ module rv_iopmp_regmap_wrapper #(
     input devmode_i // If 1, explicit error return for unmapped register access
 );
 
-import rv_iopmp_reg_pkg::*;
-
 // Device configuration and status registers
-iopmp_reg2hw_t reg2hw;
-iopmp_hw2reg_t hw2reg;
+rv_iopmp_reg_pkg::iopmp_reg2hw_t reg2hw;
+rv_iopmp_reg_pkg::iopmp_hw2reg_t hw2reg;
 
 assign iopmp_enabled_o = reg2hw.hwcfg0.enable.q;
 

@@ -49,28 +49,25 @@ module riscv_iopmp #(
     output logic  wsi_wire_o
 );
 
-import rv_iopmp_pkg::*;
-import rv_iopmp_reg_pkg::*;
-
 localparam int unsigned NumberMds = (NUMBER_MASTERS == 1) ? 1 : NUMBER_MDS;
 
 reg_req_t cfg_reg_req;
 reg_rsp_t cfg_reg_rsp;
 
 logic iopmp_enabled;
-mdcfg_entry_t [NumberMds - 1:0]      mdcfg_table;
-srcmd_entry_t [NUMBER_MASTERS - 1:0] srcmd_table;
-iopmp_entry_t [NUMBER_ENTRIES - 1:0] entry_table;
+rv_iopmp_pkg::mdcfg_entry_t [NumberMds - 1:0]      mdcfg_table;
+rv_iopmp_pkg::srcmd_entry_t [NUMBER_MASTERS - 1:0] srcmd_table;
+rv_iopmp_pkg::iopmp_entry_t [NUMBER_ENTRIES - 1:0] entry_table;
 
 // Transaction logic
 logic                         transaction_en[NUMBER_TL_INSTANCES];
 logic [ADDR_WIDTH - 1:0]                addr[NUMBER_TL_INSTANCES];
 logic [$clog2(DATA_WIDTH/8) :0]    num_bytes[NUMBER_TL_INSTANCES];
 logic [SID_WIDTH     - 1:0]              sid[NUMBER_TL_INSTANCES];
-access_t                         access_type[NUMBER_TL_INSTANCES];
+rv_iopmp_pkg::access_t                         access_type[NUMBER_TL_INSTANCES];
 
 logic [NUMBER_TL_INSTANCES - 1:0]           allow_transaction_arr;
-error_capture_t [NUMBER_TL_INSTANCES - 1:0] err_interface;
+rv_iopmp_pkg::error_capture_t       [NUMBER_TL_INSTANCES - 1:0] err_interface;
 
 rv_iopmp_cfg_abstractor_axi #(
     .DATA_WIDTH(DATA_WIDTH),

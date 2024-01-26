@@ -1,23 +1,21 @@
 // Author:      Luís Cunha
 // Description: IOPMP draft5
-import rv_iopmp_reg_pkg::*;
-import rv_iopmp_pkg::*;
 
 module rv_iopmp_error_capture #(
     // Implementation specific parameters
     parameter int unsigned NUMBER_IOPMP_INSTANCES = 1
 ) (
-    input iopmp_reg2hw_err_reqinfo_reg_t  reg2hw_err_reqinfo_i,
-    input iopmp_reg2hw_err_reqid_reg_t    reg2hw_err_reqid_i,
-    input iopmp_reg2hw_err_reqaddr_reg_t  reg2hw_err_reqaddr_i,
-    input iopmp_reg2hw_err_reqaddrh_reg_t reg2hw_err_reqaddrh_i,
+    input rv_iopmp_reg_pkg::iopmp_reg2hw_err_reqinfo_reg_t  reg2hw_err_reqinfo_i,
+    input rv_iopmp_reg_pkg::iopmp_reg2hw_err_reqid_reg_t    reg2hw_err_reqid_i,
+    input rv_iopmp_reg_pkg::iopmp_reg2hw_err_reqaddr_reg_t  reg2hw_err_reqaddr_i,
+    input rv_iopmp_reg_pkg::iopmp_reg2hw_err_reqaddrh_reg_t reg2hw_err_reqaddrh_i,
 
-    output iopmp_hw2reg_err_reqinfo_reg_t  hw2reg_err_reqinfo_o,
-    output iopmp_hw2reg_err_reqid_reg_t    hw2reg_err_reqid_o,
-    output iopmp_hw2reg_err_reqaddr_reg_t  hw2reg_err_reqaddr_o,
-    output iopmp_hw2reg_err_reqaddrh_reg_t hw2reg_err_reqaddrh_o,
+    output rv_iopmp_reg_pkg::iopmp_hw2reg_err_reqinfo_reg_t  hw2reg_err_reqinfo_o,
+    output rv_iopmp_reg_pkg::iopmp_hw2reg_err_reqid_reg_t    hw2reg_err_reqid_o,
+    output rv_iopmp_reg_pkg::iopmp_hw2reg_err_reqaddr_reg_t  hw2reg_err_reqaddr_o,
+    output rv_iopmp_reg_pkg::iopmp_hw2reg_err_reqaddrh_reg_t hw2reg_err_reqaddrh_o,
 
-    input error_capture_t [NUMBER_IOPMP_INSTANCES - 1 : 0] err_interface_i
+    input rv_iopmp_pkg::error_capture_t [NUMBER_IOPMP_INSTANCES - 1 : 0] err_interface_i
 );
 
 
