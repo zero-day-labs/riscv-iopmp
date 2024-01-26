@@ -1,7 +1,7 @@
 // Module to abstract the MD behaviour
 //md_config_t(io_pmp_reg2hw_srcmd_entry_t)
 
-/* verilator lint_off WIDTHEXPAND */
+// Disabled verilator lint_off WIDTHEXPAND
 module rv_iopmp_entry #(
     parameter int LEN = 32,
     parameter int CHECK_LEN = 66, // In the spec the entry registers hold data for the 65:2, so 66 bits
@@ -87,4 +87,4 @@ end
 
 
 endmodule
-/* verilator lint_on WIDTHEXPAND */
+// Disabled verilator lint_on WIDTHEXPAND

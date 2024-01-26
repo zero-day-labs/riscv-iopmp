@@ -31,7 +31,6 @@ module rv_iopmp_wsi_ig(
 );
 
     always_comb begin : wsi_support
-        /* verilator lint_off WIDTH */
         wsi_wire_o = '0;
 
         // If WSI generation supported and enabled

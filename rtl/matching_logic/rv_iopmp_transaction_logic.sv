@@ -89,8 +89,8 @@ generate
     end
 endgenerate
 
-/* verilator lint_off WIDTHEXPAND */
-/* verilator lint_off WIDTHTRUNC */
+// Disabled verilator lint_off WIDTHEXPAND
+// Disabled verilator lint_off WIDTHTRUNC
 rv_iopmp_dl_wrapper #(
     .NUMBER_MDS(NUMBER_MDS),
     .NUMBER_ENTRIES(NUMBER_ENTRIES),
@@ -144,8 +144,8 @@ always_comb begin
         err_interface_o.err_reqaddrh  = addr_to_check[63:32];
     end
 end
-/* verilator lint_on WIDTHTRUNC */
-/* verilator lint_on WIDTHEXPAND */
+// Disabled verilator lint_on WIDTHTRUNC
+// Disabled verilator lint_on WIDTHEXPAND
 
 
 endmodule
