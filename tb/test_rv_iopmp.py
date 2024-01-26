@@ -59,7 +59,7 @@ class TB:
          
 def get_addr_offsets():
     # extract address offset from auto-generated pmp header
-    file = os.path.abspath(os.path.join(os.path.abspath(os.path.dirname(__file__)), 'src/include/rv_iopmp.h'))
+    file = os.path.abspath(os.path.join(os.path.abspath(os.path.dirname(__file__)), '../include/rv_iopmp.h'))
 
     params = dict()
     with open(file, 'r') as file:
