@@ -256,7 +256,7 @@ module rv_iopmp_regmap #(
 
 
   //   F[prient_prog]: 7:7
-  prim_subreg #(
+  rv_iopmp_subreg #(
     .DW      (1),
     .SWACCESS("W1CS"),
     .RESVAL  (1'h1)
@@ -292,7 +292,7 @@ module rv_iopmp_regmap #(
 
 
   //   F[chk_x]: 10:10
-  prim_subreg #(
+  rv_iopmp_subreg #(
     .DW      (1),
     .SWACCESS("RO"),
     .RESVAL  (1'h0)
@@ -317,7 +317,7 @@ module rv_iopmp_regmap #(
 
 
   //   F[no_x]: 11:11
-  prim_subreg #(
+  rv_iopmp_subreg #(
     .DW      (1),
     .SWACCESS("RO"),
     .RESVAL  (1'h0)
@@ -342,7 +342,7 @@ module rv_iopmp_regmap #(
 
 
   //   F[no_w]: 12:12
-  prim_subreg #(
+  rv_iopmp_subreg #(
     .DW      (1),
     .SWACCESS("RO"),
     .RESVAL  (NO_W)
@@ -377,7 +377,7 @@ module rv_iopmp_regmap #(
 
 
   //   F[enable]: 31:31
-  prim_subreg #(
+  rv_iopmp_subreg #(
     .DW      (1),
     .SWACCESS("W1SS"),
     .RESVAL  (1'h0)
@@ -417,7 +417,7 @@ module rv_iopmp_regmap #(
   // R[hwcfg2]: V(False)
 
   //   F[prio_entry]: 15:0
-  prim_subreg #(
+  rv_iopmp_subreg #(
     .DW      (16),
     .SWACCESS("RW"),
     .RESVAL  (16'h0)
@@ -443,7 +443,7 @@ module rv_iopmp_regmap #(
 /* Script Modified */
 
   //   F[sid_transl]: 31:16
-  prim_subreg #(
+  rv_iopmp_subreg #(
     .DW      (16),
     .SWACCESS("RW"),
     .RESVAL  (16'h0)
@@ -470,7 +470,7 @@ module rv_iopmp_regmap #(
 
   // R[entry_offset]: V(False)
 
-  prim_subreg #(
+  rv_iopmp_subreg #(
     .DW      (32),
     .SWACCESS("RO"),
     .RESVAL  (32'h2000)
@@ -497,7 +497,7 @@ module rv_iopmp_regmap #(
   // R[errreact]: V(False)
 
   //   F[l]: 0:0
-  prim_subreg #(
+  rv_iopmp_subreg #(
     .DW      (1),
     .SWACCESS("W1SS"),
     .RESVAL  (1'h0)
@@ -523,7 +523,7 @@ module rv_iopmp_regmap #(
 
 
   //   F[ie]: 1:1
-  prim_subreg #(
+  rv_iopmp_subreg #(
     .DW      (1),
     .SWACCESS("RW"),
     .RESVAL  (1'h0)
@@ -549,7 +549,7 @@ module rv_iopmp_regmap #(
 /* Script Modified */
 
   //   F[ire]: 4:4
-  prim_subreg #(
+  rv_iopmp_subreg #(
     .DW      (1),
     .SWACCESS("RW"),
     .RESVAL  (1'h0)
@@ -575,7 +575,7 @@ module rv_iopmp_regmap #(
 /* Script Modified */
 
   //   F[rre]: 7:5
-  prim_subreg #(
+  rv_iopmp_subreg #(
     .DW      (3),
     .SWACCESS("RW"),
     .RESVAL  (3'h0)
@@ -601,7 +601,7 @@ module rv_iopmp_regmap #(
 /* Script Modified */
 
   //   F[iwe]: 8:8
-  prim_subreg #(
+  rv_iopmp_subreg #(
     .DW      (1),
     .SWACCESS("RW"),
     .RESVAL  (1'h0)
@@ -627,7 +627,7 @@ module rv_iopmp_regmap #(
 /* Script Modified */
 
   //   F[rwe]: 11:9
-  prim_subreg #(
+  rv_iopmp_subreg #(
     .DW      (3),
     .SWACCESS("RW"),
     .RESVAL  (3'h0)
@@ -653,7 +653,7 @@ module rv_iopmp_regmap #(
 /* Script Modified */
 
   //   F[pee]: 28:28
-  prim_subreg #(
+  rv_iopmp_subreg #(
     .DW      (1),
     .SWACCESS("RW"),
     .RESVAL  (1'h0)
@@ -679,7 +679,7 @@ module rv_iopmp_regmap #(
 /* Script Modified */
 
   //   F[rpe]: 31:29
-  prim_subreg #(
+  rv_iopmp_subreg #(
     .DW      (3),
     .SWACCESS("RW"),
     .RESVAL  (3'h0)
@@ -707,7 +707,7 @@ module rv_iopmp_regmap #(
   // R[mdcfglck]: V(False)
 
   //   F[l]: 0:0
-  prim_subreg #(
+  rv_iopmp_subreg #(
     .DW      (1),
     .SWACCESS("W1SS"),
     .RESVAL  (1'h0)
@@ -733,7 +733,7 @@ module rv_iopmp_regmap #(
 
 
   //   F[f]: 7:1
-  prim_subreg #(
+  rv_iopmp_subreg #(
     .DW      (7),
     .SWACCESS("RW"),
     .RESVAL  (7'h0)
@@ -761,7 +761,7 @@ module rv_iopmp_regmap #(
   // R[entrylck]: V(False)
 
   //   F[l]: 0:0
-  prim_subreg #(
+  rv_iopmp_subreg #(
     .DW      (1),
     .SWACCESS("W1SS"),
     .RESVAL  (1'h0)
@@ -787,7 +787,7 @@ module rv_iopmp_regmap #(
 
 
   //   F[f]: 16:1
-  prim_subreg #(
+  rv_iopmp_subreg #(
     .DW      (16),
     .SWACCESS("RW"),
     .RESVAL  (16'h0)
@@ -815,7 +815,7 @@ module rv_iopmp_regmap #(
   // R[err_reqinfo]: V(False)
 
   //   F[ip]: 0:0
-  prim_subreg #(
+  rv_iopmp_subreg #(
     .DW      (1),
     .SWACCESS("W1C"),
     .RESVAL  (1'h0)
@@ -841,7 +841,7 @@ module rv_iopmp_regmap #(
 
 
   //   F[ttype]: 2:1
-  prim_subreg #(
+  rv_iopmp_subreg #(
     .DW      (2),
     .SWACCESS("RO"),
     .RESVAL  (2'h0)
@@ -866,7 +866,7 @@ module rv_iopmp_regmap #(
 
 
   //   F[etype]: 6:4
-  prim_subreg #(
+  rv_iopmp_subreg #(
     .DW      (3),
     .SWACCESS("RO"),
     .RESVAL  (3'h0)
@@ -893,7 +893,7 @@ module rv_iopmp_regmap #(
   // R[err_reqid]: V(False)
 
   //   F[sid]: 15:0
-  prim_subreg #(
+  rv_iopmp_subreg #(
     .DW      (16),
     .SWACCESS("RO"),
     .RESVAL  (16'h0)
@@ -918,7 +918,7 @@ module rv_iopmp_regmap #(
 
 
   //   F[eid]: 31:16
-  prim_subreg #(
+  rv_iopmp_subreg #(
     .DW      (16),
     .SWACCESS("RO"),
     .RESVAL  (16'h0)
@@ -944,7 +944,7 @@ module rv_iopmp_regmap #(
 
   // R[err_reqaddr]: V(False)
 
-  prim_subreg #(
+  rv_iopmp_subreg #(
     .DW      (32),
     .SWACCESS("RO"),
     .RESVAL  (32'h0)
@@ -970,7 +970,7 @@ module rv_iopmp_regmap #(
 
   // R[err_reqaddrh]: V(False)
 
-  prim_subreg #(
+  rv_iopmp_subreg #(
     .DW      (32),
     .SWACCESS("RO"),
     .RESVAL  (32'h0)
@@ -997,7 +997,7 @@ module rv_iopmp_regmap #(
   //generate gen_mdcfg_entries
   for (genvar i = 0; i < NUMBER_MDS; i++) begin
       // F[t_0]: 15:0
-    prim_subreg #(
+    rv_iopmp_subreg #(
       .DW      (16),
       .SWACCESS("RW"),
       .RESVAL  (16'h0)
@@ -1027,7 +1027,7 @@ module rv_iopmp_regmap #(
   for (genvar i = 0; i < NUMBER_MASTERS; i++) begin
     // R[srcmd_en0]: V(False)
     //   F[l]: 0:0
-    prim_subreg #(
+    rv_iopmp_subreg #(
       .DW      (1),
       .SWACCESS("W1SS"),
       .RESVAL  (1'h0)
@@ -1053,7 +1053,7 @@ module rv_iopmp_regmap #(
     /* Script Modified */
 
     //   F[md]: 31:1
-    prim_subreg #(
+    rv_iopmp_subreg #(
       .DW      (31),
       .SWACCESS("RW"),
       .RESVAL  (31'h0)
@@ -1080,7 +1080,7 @@ module rv_iopmp_regmap #(
 
     // R[srcmd_enh0]: V(False)
 
-    prim_subreg #(
+    rv_iopmp_subreg #(
       .DW      (32),
       .SWACCESS("RW"),
       .RESVAL  (32'h0)
@@ -1110,7 +1110,7 @@ module rv_iopmp_regmap #(
   //generate gen_entries
   for(genvar i = 0; i < NUMBER_ENTRIES; i++) begin
       // R[entry_addr0]: V(False)
-    prim_subreg #(
+    rv_iopmp_subreg #(
       .DW      (32),
       .SWACCESS("RW"),
       .RESVAL  (32'h0)
@@ -1136,7 +1136,7 @@ module rv_iopmp_regmap #(
 
     // R[entry_addrh]: V(False)
 
-    prim_subreg #(
+    rv_iopmp_subreg #(
       .DW      (32),
       .SWACCESS("RW"),
       .RESVAL  (32'h0)
@@ -1163,7 +1163,7 @@ module rv_iopmp_regmap #(
     // R[entry_cfg0]: V(False)
 
     //   F[r]: 0:0
-    prim_subreg #(
+    rv_iopmp_subreg #(
       .DW      (1),
       .SWACCESS("RW"),
       .RESVAL  (1'h0)
@@ -1188,7 +1188,7 @@ module rv_iopmp_regmap #(
     );
 
     //   F[w]: 1:1
-    prim_subreg #(
+    rv_iopmp_subreg #(
       .DW      (1),
       .SWACCESS("RW"),
       .RESVAL  (1'h0)
@@ -1214,7 +1214,7 @@ module rv_iopmp_regmap #(
     /* Script Modified */
 
     //   F[x]: 2:2
-    prim_subreg #(
+    rv_iopmp_subreg #(
       .DW      (1),
       .SWACCESS("RW"),
       .RESVAL  (1'h0)
@@ -1240,7 +1240,7 @@ module rv_iopmp_regmap #(
   /* Script Modified */
 
     //   F[a]: 4:3
-    prim_subreg #(
+    rv_iopmp_subreg #(
       .DW      (2),
       .SWACCESS("RW"),
       .RESVAL  (2'h0)
