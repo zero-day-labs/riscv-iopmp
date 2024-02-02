@@ -3,6 +3,7 @@
 //
 
 `include "register_interface/typedef.svh"
+`include "register_interface/assign.svh"
 `include "axi/typedef.svh"
 
 `ifndef GLOBAL_TYPEDEF_SVH
