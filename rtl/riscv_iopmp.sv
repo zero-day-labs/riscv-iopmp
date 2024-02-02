@@ -12,6 +12,10 @@ module riscv_iopmp #(
     // AXI request/response
     parameter type         axi_req_t      = logic,
     parameter type         axi_rsp_t      = logic,
+    /// AXI Full Slave request struct type
+    parameter type         axi_req_slv_t   = logic,
+    /// AXI Full Slave response struct type
+    parameter type         axi_rsp_slv_t   = logic,
     // AXI channel structs
     parameter type         axi_aw_chan_t  = logic,
     parameter type         axi_w_chan_t   = logic,
@@ -34,8 +38,8 @@ module riscv_iopmp #(
     input logic rst_ni,
 
     // AXI Config Slave port
-    input  axi_req_t control_req_i,
-    output axi_rsp_t control_rsp_o,
+    input  axi_req_slv_t control_req_i,
+    output axi_rsp_slv_t control_rsp_o,
 
     // AXI Bus Slave port
     input  axi_req_t receiver_req_i,
@@ -79,8 +83,8 @@ rv_iopmp_cfg_abstractor_axi #(
     .reg_req_t(reg_req_t),
     .reg_rsp_t(reg_rsp_t),
     // AXI request/response
-    .axi_req_t(axi_req_t),
-    .axi_rsp_t(axi_rsp_t)
+    .axi_req_t(axi_req_slv_t),
+    .axi_rsp_t(axi_rsp_slv_t)
 ) i_rv_iopmp_cfg_abstractor_axi (
     .clk_i(clk_i),
     .rst_ni(rst_ni),

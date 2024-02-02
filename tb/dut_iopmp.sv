@@ -251,6 +251,10 @@ riscv_iopmp #(
     .USER_WIDTH(USER_WIDTH),
     // width of id signal
     .ID_WIDTH(ID_WIDTH),
+    /// AXI Full Slave request struct type
+    .axi_req_slv_t(iopmp_axi_req_t),
+    /// AXI Full Slave response struct type
+    .axi_rsp_slv_t(iopmp_axi_rsp_t),
     // AXI request/response
     .axi_req_t(iopmp_axi_req_t),
     .axi_rsp_t(iopmp_axi_rsp_t),
