@@ -5,17 +5,19 @@ module riscv_iopmp #(
     parameter int unsigned DATA_WIDTH     = 64,
     // width of addr bus in bits
     parameter int unsigned ADDR_WIDTH     = 64,
-    // width of awuser signal
+    // width of axuser signal
     parameter int unsigned USER_WIDTH     = 2,
     // width of id signal
     parameter int unsigned ID_WIDTH       = 8,
     // AXI request/response
-    parameter type         axi_req_t      = logic,
-    parameter type         axi_rsp_t      = logic,
+    parameter type         axi_req_nsaid_t  = logic,
+    parameter type         axi_rsp_t        = logic,
+
     /// AXI Full Slave request struct type
     parameter type         axi_req_slv_t   = logic,
     /// AXI Full Slave response struct type
     parameter type         axi_rsp_slv_t   = logic,
+    
     // AXI channel structs
     parameter type         axi_aw_chan_t  = logic,
     parameter type         axi_w_chan_t   = logic,
@@ -42,11 +44,11 @@ module riscv_iopmp #(
     output axi_rsp_slv_t control_rsp_o,
 
     // AXI Bus Slave port
-    input  axi_req_t receiver_req_i,
+    input  axi_req_nsaid_t receiver_req_i,
     output axi_rsp_t receiver_rsp_o,
 
     // AXI Bus Master port
-    output  axi_req_t initiator_req_o,
+    output  axi_req_nsaid_t initiator_req_o,
     input   axi_rsp_t initiator_rsp_i,
 
     output logic  wsi_wire_o
@@ -163,7 +165,7 @@ rv_iopmp_data_abstractor_axi #(
     .DATA_WIDTH(DATA_WIDTH),
     .ID_WIDTH(ID_WIDTH),
     // AXI request/response
-    .axi_req_t(axi_req_t),
+    .axi_req_nsaid_t(axi_req_nsaid_t),
     .axi_rsp_t(axi_rsp_t),
     // AXI channel structs
     .axi_aw_chan_t(axi_aw_chan_t),
