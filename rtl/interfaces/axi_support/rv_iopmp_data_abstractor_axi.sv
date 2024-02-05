@@ -91,7 +91,7 @@ rv_iopmp_axi4_bc i_rv_iopmp_axi4_bc(
 
 
 // AXI request bus used to intercept AxADDR and AxVALID parameters, and connect to the demux slave port
-axi_req_t   axi_aux_req;
+axi_req_nsaid_t   axi_aux_req;
 
 always_comb begin
     axi_aux_req = slv_req_i;
