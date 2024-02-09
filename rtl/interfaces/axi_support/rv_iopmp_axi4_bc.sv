@@ -42,6 +42,7 @@ always_comb begin : boundary_check
 
     allow_request_o   = 1'b0;
     bound_violation_o = 1'b0;
+    wrap_boundary_o   = '0;
 
     // Request received
     if (request_i) begin
