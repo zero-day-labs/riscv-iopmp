@@ -68,6 +68,9 @@ logic bc_allow_request;
 logic bc_bound_violation;
 logic [ADDR_WIDTH-1:0]  wrap_boundary;
 
+// State register
+logic [1:0] state_reg, next_state;
+
 // Helper wire
 assign allow_transaction = iopmp_allow_transaction_i & bc_allow_request;
 
@@ -101,11 +104,6 @@ always_comb begin
     axi_aux_req.ar_valid = (state_reg == AXI_HANDSHAKE) ? ar_request : 0;
 end
 
-logic [8:0] counter;
-
-// State register
-logic [1:0] state_reg, next_state;
-
 // State transition part of the FSM
 always_ff @(posedge clk_i or negedge rst_ni) begin
     if (!rst_ni) begin
@@ -113,20 +111,36 @@ always_ff @(posedge clk_i or negedge rst_ni) begin
         state_reg <= IDLE;
     end else begin
         // State transition logic
-        state_reg <= next_state;
+        case (state_reg)
+            IDLE:   state_reg <= (slv_req_i.aw_valid | slv_req_i.ar_valid)? MULTI_CYCLE_VER : IDLE;
+
+            MULTI_CYCLE_VER: begin
+                state_reg <= (((burst_type == axi_pkg::BURST_WRAP) & (addr_to_check == wrap_boundary)) |
+                                (counter == burst_length) | !allow_transaction)?
+                                    AXI_HANDSHAKE : MULTI_CYCLE_VER;
+            end
+
+            // Wait until the handshake has ended
+            AXI_HANDSHAKE:  state_reg <= (ar_request & !slv_req_i.ar_valid) |
+                                (aw_request & !slv_req_i.aw_valid)? IDLE: AXI_HANDSHAKE;
+
+            default: state_reg <= IDLE;
+        endcase
     end
 end
+
+logic [8:0] counter;
 
 // Sequential part of the state machine
 always_ff @(posedge clk_i or negedge rst_ni) begin
     if (!rst_ni) begin
-        // Reset logic for the counter
-        counter <= 0;
         ar_request <= 1'b0;
         aw_request <= 1'b0;
         transaction_allowed <= 0;
 
+        counter <= 0;
         addr <= 0;
+        addr_to_check <= 0;
         num_bytes <= 0;
         size <= 0;
         burst_type <= 0;
@@ -138,70 +152,44 @@ always_ff @(posedge clk_i or negedge rst_ni) begin
                 counter <= 0;
                 transaction_allowed <= 0;
 
-                aw_request <= slv_req_i.aw_valid? 1'b1 : '0;
-                ar_request <= slv_req_i.aw_valid? '0 : slv_req_i.ar_valid? 1'b1 : 0;
+                aw_request      <= slv_req_i.aw_valid? 1'b1 : '0;
+                ar_request      <= slv_req_i.aw_valid? '0 : slv_req_i.ar_valid? 1'b1 : 0;
 
-                num_bytes <= slv_req_i.aw_valid ? axi_pkg::num_bytes(slv_req_i.aw.size): axi_pkg::num_bytes(slv_req_i.ar.size);
-                addr <= slv_req_i.aw_valid ? slv_req_i.aw.addr : slv_req_i.ar.addr;
-                size <= slv_req_i.aw_valid ? slv_req_i.aw.size : slv_req_i.ar.size;
-                burst_type <= slv_req_i.aw_valid ? slv_req_i.aw.burst : slv_req_i.ar.burst;
-                burst_length <= slv_req_i.aw_valid ? slv_req_i.aw.len : slv_req_i.ar.len;
+                num_bytes       <= slv_req_i.aw_valid ? axi_pkg::num_bytes(slv_req_i.aw.size): axi_pkg::num_bytes(slv_req_i.ar.size);
+                addr            <= slv_req_i.aw_valid ? slv_req_i.aw.addr : slv_req_i.ar.addr;
+                addr_to_check   <= slv_req_i.aw_valid ? slv_req_i.aw.addr : slv_req_i.ar.addr;
+                size            <= slv_req_i.aw_valid ? slv_req_i.aw.size : slv_req_i.ar.size;
+                burst_type      <= slv_req_i.aw_valid ? slv_req_i.aw.burst: slv_req_i.ar.burst;
+                burst_length    <= slv_req_i.aw_valid ? slv_req_i.aw.len  : slv_req_i.ar.len;
             end
 
             MULTI_CYCLE_VER: begin
                 counter <= counter + 1;
 
+                addr_to_check <= addr_to_check + num_bytes;  // Check for the last transition, no need to increment
                 transaction_allowed <= iopmp_allow_transaction_i & bc_allow_request;
             end
 
             default: begin
-                counter <= counter;
-                ar_request <= ar_request;
-                aw_request <= aw_request;
+                counter             <= counter;
+                ar_request          <= ar_request;
+                aw_request          <= aw_request;
                 transaction_allowed <= transaction_allowed;
-                num_bytes <= num_bytes;
+                num_bytes         <= num_bytes;
 
-                addr <= addr;
-                size <= size;
-                burst_type <= burst_type;
-                burst_length <= burst_length;
+                addr_to_check       <= addr_to_check;
+                addr                <= addr;
+                size                <= size;
+                burst_type          <= burst_type;
+                burst_length        <= burst_length;
             end
         endcase
     end
 end
 
-// Combinational part of the FSM
-// As to not compromise timings, this path was broken into multiple cycles
-// TODO: Architect a parameterizable way of parallelizing this by instantiating more transaction logic instances
 always_comb begin
-    addr_to_check = 0;
-    enable_checking = 1'b0;
-
-    case (state_reg)
-        IDLE:   next_state = (slv_req_i.aw_valid | slv_req_i.ar_valid)? MULTI_CYCLE_VER : IDLE;
-
-        MULTI_CYCLE_VER: begin
-            enable_checking = 1'b1;
-            addr_to_check = axi_pkg::beat_addr(addr, size, burst_length, burst_type, counter);
-            // If we finished, or the transaction was already not allowed, proceed to next state
-            // As the transtioning of states is clocked, we can trigger the change of state, one cycle earlier
-            next_state = (((burst_type == axi_pkg::BURST_WRAP) & (addr == wrap_boundary)) |
-                            (counter == burst_length) | !allow_transaction)?
-                                AXI_HANDSHAKE : MULTI_CYCLE_VER;
-        end
-
-        // Wait until the handshake has ended
-        AXI_HANDSHAKE:  next_state = (ar_request & !slv_req_i.ar_valid) |
-                            (aw_request & !slv_req_i.aw_valid)? IDLE: AXI_HANDSHAKE;
-
-        default: next_state = IDLE;
-
-    endcase
-end
-
-always_comb begin
-    transaction_en_o = (aw_request | ar_request)? enable_checking: '0;
-    addr_o           = (aw_request | ar_request)? addr_to_check: '0;
+    transaction_en_o = (state_reg == MULTI_CYCLE_VER) ? 1 : 0;
+    addr_o           = addr_to_check;
     num_bytes_o      = num_bytes;
     sid_o            = (aw_request)? slv_req_i.aw.nsaid : slv_req_i.ar.nsaid;
     access_type_o    = (aw_request)? rv_iopmp_pkg::ACCESS_WRITE : rv_iopmp_pkg::ACCESS_READ;

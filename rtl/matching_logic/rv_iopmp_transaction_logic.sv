@@ -29,7 +29,7 @@ module rv_iopmp_transaction_logic #(
     input logic [ADDR_WIDTH - 1:0]                 addr_i,
     input logic [$clog2(DATA_WIDTH/8) :0]     num_bytes_i,
     input logic [SID_WIDTH     - 1:0]               sid_i,
-    input rv_iopmp_pkg::access_t                          access_type_i,
+    input rv_iopmp_pkg::access_t            access_type_i,
 
     output logic                           allow_transaction_o,
 
@@ -42,6 +42,8 @@ logic [NUMBER_ENTRIES-1:0]            entry_match;
 logic [NUMBER_ENTRIES-1:0]            entry_allow;
 logic                                 allow_transaction;
 logic [2:0] entry_access;
+
+rv_iopmp_pkg::iopmp_entry_t [NUMBER_ENTRIES - 1:0] entry_table; // Break long wires
 
 // IOPMP Error signals
 logic        err_transaction;
@@ -62,30 +64,35 @@ assign num_bytes      = num_bytes_i;
 assign sid            = sid_i;
 assign access_type    = access_type_i;
 
+always_ff @(posedge clk_i) begin
+    for(integer i = 0; i < NUMBER_ENTRIES; i++)
+        entry_table[i] <= entry_table_i[i];
+end
+
+
 // Generate block for instantiating iopmp_entry instances and entry logic
 generate
     for (genvar i = 0; i < NUMBER_ENTRIES; i++) begin : gen_entries
         automatic logic [ENTRY_ADDR_LEN-1:0] previous_entry_addr; // Get previous config
         automatic logic [ENTRY_ADDR_LEN-1:0] previous_entry_addrh; // Get previous config
 
-        assign previous_entry_addr  = (i == 0) ? '0 : entry_table_i[0+i-1].addr;
-        assign previous_entry_addrh = (i == 0) ? '0 : entry_table_i[0+i-1].addrh;
+        assign previous_entry_addr  = (i == 0) ? '0 : entry_table[0+i-1].addr;
+        assign previous_entry_addrh = (i == 0) ? '0 : entry_table[0+i-1].addrh;
 
         rv_iopmp_entry #(
-            .LEN    ( ENTRY_ADDR_LEN ),
-            .ADDR_WIDTH ( ADDR_WIDTH )
+            .LEN        ( ENTRY_ADDR_LEN ),
+            .ADDR_WIDTH ( ADDR_WIDTH     )
         ) i_rv_iopmp_entry(
             .addr_to_check_i        ( addr_to_check                       ),
             .num_bytes_i            ( num_bytes                           ),
-            .addr_i                 ( entry_table_i[i].addr  ),
-            .addrh_i                ( entry_table_i[i].addrh ),
+            .addr_i                 ( entry_table[i].addr  ),
+            .addrh_i                ( entry_table[i].addrh ),
             .previous_entry_addr_i  ( previous_entry_addr                 ),
             .previous_entry_addrh_i ( previous_entry_addrh                ),
-            .mode_i                 ( entry_table_i[i].cfg.a ),
-            .match_o                ( entry_match[i]                            ),
+            .mode_i                 ( entry_table[i].cfg.a ),
+            .match_o                ( entry_match[i]                      ),
             .allow_o                ( entry_allow[i]                      )
         );
-
     end
 endgenerate
 
@@ -103,7 +110,7 @@ rv_iopmp_dl_wrapper #(
     .sid_i(sid),
     .srcmd_table_i(srcmd_table_i),
     .mdcfg_table_i(mdcfg_table_i),
-    .entry_table_i(entry_table_i),
+    .entry_table_i(entry_table),
 
     // Transaction
     .access_type_i(access_type),
