@@ -16,7 +16,7 @@ module rv_iopmp_transaction_logic #(
     parameter int unsigned NUMBER_ENTRIES = 8,
     parameter int unsigned NUMBER_MASTERS = 2,
 
-    parameter int unsigned NUMBER_INSTANCES = 8
+    parameter int unsigned NUMBER_INSTANCES = 32
 ) (
     // rising-edge clock
     input  logic     clk_i,
@@ -43,7 +43,7 @@ module rv_iopmp_transaction_logic #(
     output rv_iopmp_pkg::error_capture_t err_interface_o
 );
 
-localparam int unsigned NumberOfIterations = NUMBER_ENTRIES/NUMBER_INSTANCES;
+localparam int unsigned NumberOfIterations = NUMBER_ENTRIES/NUMBER_INSTANCES - 1;
 localparam logic Idle            = 1'b0;
 localparam logic Verification    = 1'b1;
 
@@ -194,7 +194,8 @@ endgenerate
 rv_iopmp_dl_wrapper #(
     .NUMBER_MDS(NUMBER_MDS),
     .NUMBER_ENTRIES(NUMBER_ENTRIES),
-    .NUMBER_MASTERS(NUMBER_MASTERS)
+    .NUMBER_MASTERS(NUMBER_MASTERS),
+    .NUMBER_INSTANCES(NUMBER_INSTANCES)
 ) i_rv_iopmp_dl_wrapper (
     .enable_i(iopmp_enabled_i & transaction_en),
     .entry_match_i(entry_match),
