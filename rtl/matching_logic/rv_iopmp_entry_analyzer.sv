@@ -1,10 +1,15 @@
-// Module to abstract the MD behaviour
-//md_config_t(io_pmp_reg2hw_srcmd_entry_t)
+// Author: Luís Cunha <luisccunha8@gmail.com>
+// Date: 14/02/2024
+// Acknowledges:
+//
+// Description: RISC-V IOPMP Entry Analyzer.
+//              Module responsible for matching the transaction address with the stored entries,
+//              according to the configured entry rules.
 
 // Disabled verilator lint_off WIDTHEXPAND
 module rv_iopmp_entry_analyzer #(
     parameter int LEN = 32,
-    parameter int CHECK_LEN = 66, // In the spec the entry registers hold data for the 65:2, so 66 bits
+    parameter int CHECK_LEN = 66,           // In the spec the entry registers hold data for the 65:2, so 66 bits
     parameter int unsigned ADDR_WIDTH     = 64,
     parameter int unsigned DATA_WIDTH     = 64
 ) (
@@ -29,9 +34,12 @@ logic [LEN*2-1:0] previous_entry_addr;
 logic [CHECK_LEN - 1:0] entry_addr_n;
 logic [$clog2(CHECK_LEN) - 1:0] trail_ones;
 
+// Concatenate entry addresses
 assign entry_addr = {addrh_i, addr_i};
 assign previous_entry_addr = {previous_entry_addrh_i, previous_entry_addr_i};
-assign entry_addr_n = {2'b11, ~entry_addr};   // Negate, and count the trailing zeros
+
+// Negate, for use in the leading zero counter - Refer to PMP enconding
+assign entry_addr_n = {2'b11, ~entry_addr};
 
 logic [CHECK_LEN - 1:0] base;
 logic [CHECK_LEN    :0] final_address; // The supported addresses can reach 2^(67) 
@@ -39,10 +47,9 @@ logic [CHECK_LEN - 1:0] mask;
 logic [$clog2(CHECK_LEN) :0] size; // Can be trail ones + 3, which needs at least one more bit
 logic allow;
 
-// entry_access = {entry_table_i[j].cfg.x, entry_table_i[j].cfg.w, entry_table_i[j].cfg.r};
-
 assign allow_o = allow & ((transaction_type_i & access_permissions_i) == transaction_type_i);
 
+// Leading zero counter - Refer to PMP enconding
 lzc #(
     .WIDTH(CHECK_LEN),
     .MODE (1'b0)
@@ -78,10 +85,12 @@ always_comb begin
                 size = trail_ones + 3;
             end
 
+            // Mask that allows the extraction of the base address for the entry and transaction
             mask = '1 << size;
             base = ({2'b0, entry_addr} << 2) & mask; // Calculate base to compare with lower addr_to_check
             final_address = (base + (2 << (size - 1))) - 1; // Calculate final permited address for this entry
 
+            // If both base addresses are equal, match
             match_o = (addr_to_check_i & mask) == base ? 1'b1 : 1'b0;
             // Is the final requested address smaller than the final permited address of the entry?
             allow = (addr_to_check_i + num_bytes_i - 1 <= final_address) ? 1'b1 : 1'b0;

@@ -1,18 +1,23 @@
-// Combinational Module to implement the SE design
-// Spec does not reference this, but in source enforcement mode, it does not make sense to have memory domains
+// Author: Luís Cunha <luisccunha8@gmail.com>
+// Date: 14/02/2024
+// Acknowledges:
+//
+// Description: RISC-V IOPMP Decision Logic Wrapper.
+//              Combinational Module to implement the SE design.
+//              Spec does not reference this, but in source enforcement mode, we did not implement memory domains
 
 module rv_iopmp_dl_se #(
     parameter int unsigned NUMBER_ENTRIES   = 8,
     parameter int unsigned NUMBER_ENTRY_ANALYZERS = 8
 ) (
     input logic                                enable_i,
-    input logic [NUMBER_ENTRY_ANALYZERS-1:0]         entry_match_i,
-    input logic [NUMBER_ENTRY_ANALYZERS-1:0]         entry_allow_i,
+    input logic [NUMBER_ENTRY_ANALYZERS-1:0]   entry_match_i,
+    input logic [NUMBER_ENTRY_ANALYZERS-1:0]   entry_allow_i,
     input logic [ 8 : 0 ]                      entry_offset_i,
 
     // Transaction
-    input rv_iopmp_pkg::access_t           access_type_i,
-    output logic                           allow_transaction_o,
+    input rv_iopmp_pkg::access_t access_type_i,
+    output logic                 allow_transaction_o,
 
     // Error interface
     // IOPMP Error signals
@@ -30,18 +35,21 @@ always_comb begin
     err_type_o = 0;
     err_entry_index_o = 0;
 
-    // If a transaction is occorring and the iopmp is enabled
+    // If a transaction is occorring and the iopmp is enabled, start checking
     if(enable_i) begin
-        if ((entry_offset_i == NUMBER_ENTRIES - NUMBER_ENTRY_ANALYZERS) & entry_match_i == 0) begin // If match is equal to 0, there are no entries matching the transaction. Signal not hit any rule error.
+        // If match is equal to 0, there are no entries matching the transaction, if we are on the last iteration.
+        // Signal not hit any rule error.
+        if ((entry_offset_i == NUMBER_ENTRIES - NUMBER_ENTRY_ANALYZERS) & entry_match_i == 0) begin
             allow_transaction_o = 0;
             err_transaction_o = 1'b1;
             err_type_o = 3'h5;
         end
         else begin
-            // Go trough every memory domain and entries possible
+            // Go trough every entry
             for(integer j = 0; j < NUMBER_ENTRIES; j++) begin
                 // Check if current entry has a match
                 if(entry_match_i[j]) begin
+                    // Check if entry_analyzer allowed transaction
                     if(!entry_allow_i[j]) begin
                         allow_transaction_o = 0;
                         err_transaction_o = 1'b1;

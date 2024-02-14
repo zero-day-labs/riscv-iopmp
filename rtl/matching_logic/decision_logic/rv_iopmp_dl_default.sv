@@ -1,4 +1,10 @@
-// Combinational Module to implement the default design
+// Author: Luís Cunha <luisccunha8@gmail.com>
+// Date: 14/02/2024
+// Acknowledges:
+//
+// Description: RISC-V IOPMP Decision Logic Wrapper.
+//              Combinational Module to implement the default design.
+//              Go through every MD of the transaction's SID.
 
 module rv_iopmp_dl_default #(
     parameter int unsigned SID_WIDTH        = 8,
@@ -8,8 +14,8 @@ module rv_iopmp_dl_default #(
     parameter int unsigned NUMBER_ENTRY_ANALYZERS = 8
 ) (
     input logic                                enable_i,
-    input logic [NUMBER_ENTRY_ANALYZERS-1:0]         entry_match_i,
-    input logic [NUMBER_ENTRY_ANALYZERS-1:0]         entry_allow_i,
+    input logic [NUMBER_ENTRY_ANALYZERS-1:0]   entry_match_i,
+    input logic [NUMBER_ENTRY_ANALYZERS-1:0]   entry_allow_i,
     input logic [ 8 : 0 ]                      entry_offset_i,
     input logic [SID_WIDTH - 1:0]              sid_i,
 
@@ -27,7 +33,10 @@ module rv_iopmp_dl_default #(
     output logic [15:0] err_entry_index_o
 );
 
+// Helper for the srcmd_en register - Eliminates VERILATOR errors
 logic [63:0] srcmd_en;
+
+// Helper for knowing what is the actual entry being analyzed
 logic [8:0]  index;
 
 assign srcmd_en = {srcmd_table_i[sid_i].enh, srcmd_table_i[sid_i].en.md};
@@ -44,13 +53,15 @@ always_comb begin
 
     // If a transaction is occorring and the iopmp is enabled
     if(enable_i) begin
-        if ((entry_offset_i == NUMBER_ENTRIES - NUMBER_ENTRY_ANALYZERS) & entry_match_i == 0) begin // If match is equal to 0, there are no entries matching the transaction. Signal not hit any rule error.
+        // If match is equal to 0, there are no entries matching the transaction, if we are on the last iteration.
+        // Signal not hit any rule error.
+        if ((entry_offset_i == NUMBER_ENTRIES - NUMBER_ENTRY_ANALYZERS) & entry_match_i == 0) begin
             allow_transaction_o = 0;
             err_transaction_o = 1'b1;
             err_type_o = 3'h5;
         end
         else begin
-            // we can reach this point if the SID is "invalid", just check it isn't unknown, i.e., if SID isnt higher than the number of masters
+            // We can reach this point if the SID is "invalid", just check it isn't unknown, i.e., if SID isnt higher than the number of masters
             if(sid_i > NUMBER_MASTERS) begin
                 err_type_o = 3'h6;
                 allow_transaction_o = 0;

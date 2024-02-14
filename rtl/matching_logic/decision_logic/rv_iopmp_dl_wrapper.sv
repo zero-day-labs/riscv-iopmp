@@ -1,3 +1,10 @@
+// Author: Luís Cunha <luisccunha8@gmail.com>
+// Date: 14/02/2024
+// Acknowledges:
+//
+// Description: RISC-V IOPMP Decision Logic Wrapper.
+//              Wraps the decision logic modules, only one is implemented depending on the ammount of masters
+
 
 module rv_iopmp_dl_wrapper #(
     parameter int unsigned SID_WIDTH        = 8,
@@ -8,16 +15,16 @@ module rv_iopmp_dl_wrapper #(
 ) (
     input logic                                enable_i,
     input logic [SID_WIDTH - 1:0]              sid_i,
-    input logic [NUMBER_ENTRY_ANALYZERS-1:0]           entry_match_i,
-    input logic [NUMBER_ENTRY_ANALYZERS-1:0]           entry_allow_i,
+    input logic [NUMBER_ENTRY_ANALYZERS-1:0]   entry_match_i,
+    input logic [NUMBER_ENTRY_ANALYZERS-1:0]   entry_allow_i,
     input logic [ 8 : 0 ]                      entry_offset_i,
 
     input rv_iopmp_pkg::srcmd_entry_t [NUMBER_MASTERS - 1:0] srcmd_table_i,
     input rv_iopmp_pkg::mdcfg_entry_t [NUMBER_MDS     - 1:0] mdcfg_table_i,
 
     // Transaction
-    input rv_iopmp_pkg::access_t           access_type_i,
-    output logic                           allow_transaction_o,
+    input rv_iopmp_pkg::access_t access_type_i,
+    output logic                 allow_transaction_o,
 
     // Error interface
     // IOPMP Error signals
@@ -27,7 +34,8 @@ module rv_iopmp_dl_wrapper #(
 );
 
 generate
-    if(NUMBER_MASTERS == 1) begin
+    if(NUMBER_MASTERS == 1) begin : gen_dl_se
+        // Source enforcement
         rv_iopmp_dl_se #(
             .NUMBER_ENTRIES  (NUMBER_ENTRIES),
             .NUMBER_ENTRY_ANALYZERS(NUMBER_ENTRY_ANALYZERS)
@@ -48,7 +56,8 @@ generate
             .err_entry_index_o(err_entry_index_o)
         );
     end
-    else begin
+    else begin : gen_dl_default
+        // Default - Currently full model
         rv_iopmp_dl_default #(
             .SID_WIDTH(SID_WIDTH),
             .NUMBER_MDS(NUMBER_MDS),

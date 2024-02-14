@@ -1,5 +1,11 @@
-// Author:      Luís Cunha
-// Description: IOPMP draft5
+// Author: Luís Cunha <luisccunha8@gmail.com>
+// Date: 14/02/2024
+// Acknowledges:
+//
+// Description: RISC-V IOPMP Error capture.
+//              Module responsible for matching the transaction address with the stored entries,
+//              according to the configured entry rules.
+
 
 module rv_iopmp_error_capture #(
     // Implementation specific parameters
