@@ -17,7 +17,7 @@ module riscv_iopmp #(
     parameter type         axi_req_slv_t   = logic,
     /// AXI Full Slave response struct type
     parameter type         axi_rsp_slv_t   = logic,
-    
+
     // AXI channel structs
     parameter type         axi_aw_chan_t  = logic,
     parameter type         axi_w_chan_t   = logic,
@@ -33,8 +33,8 @@ module riscv_iopmp #(
     parameter int unsigned NUMBER_MDS      = 2,
     parameter int unsigned NUMBER_ENTRIES  = 8,
     parameter int unsigned NUMBER_MASTERS  = 2,
-    parameter int unsigned NUMBER_TL_INSTANCES = 1
-
+    parameter int unsigned NUMBER_TL_INSTANCES = 1,
+    parameter int unsigned NUMBER_ENTRY_ANALYZERS = 32
 ) (
     input logic clk_i,
     input logic rst_ni,
@@ -136,7 +136,8 @@ generate
             .SID_WIDTH (SidWidth),  // The signal which connects to the SID is the user field
             .NUMBER_MDS(NumberMds),
             .NUMBER_ENTRIES(NUMBER_ENTRIES),
-            .NUMBER_MASTERS(NUMBER_MASTERS)
+            .NUMBER_MASTERS(NUMBER_MASTERS),
+            .NUMBER_ENTRY_ANALYZERS(NUMBER_ENTRY_ANALYZERS)
         ) i_rv_iopmp_transaction_logic(
             // rising-edge clock
             .clk_i(clk_i),

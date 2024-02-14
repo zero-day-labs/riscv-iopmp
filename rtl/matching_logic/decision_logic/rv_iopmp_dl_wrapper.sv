@@ -4,12 +4,12 @@ module rv_iopmp_dl_wrapper #(
     parameter int unsigned NUMBER_MDS       = 2,
     parameter int unsigned NUMBER_ENTRIES   = 8,
     parameter int unsigned NUMBER_MASTERS   = 2,
-    parameter int unsigned NUMBER_INSTANCES = 8
+    parameter int unsigned NUMBER_ENTRY_ANALYZERS = 8
 ) (
     input logic                                enable_i,
     input logic [SID_WIDTH - 1:0]              sid_i,
-    input logic [NUMBER_INSTANCES-1:0]           entry_match_i,
-    input logic [NUMBER_INSTANCES-1:0]           entry_allow_i,
+    input logic [NUMBER_ENTRY_ANALYZERS-1:0]           entry_match_i,
+    input logic [NUMBER_ENTRY_ANALYZERS-1:0]           entry_allow_i,
     input logic [ 8 : 0 ]                      entry_offset_i,
 
     input rv_iopmp_pkg::srcmd_entry_t [NUMBER_MASTERS - 1:0] srcmd_table_i,
@@ -30,7 +30,7 @@ generate
     if(NUMBER_MASTERS == 1) begin
         rv_iopmp_dl_se #(
             .NUMBER_ENTRIES  (NUMBER_ENTRIES),
-            .NUMBER_INSTANCES(NUMBER_INSTANCES)
+            .NUMBER_ENTRY_ANALYZERS(NUMBER_ENTRY_ANALYZERS)
         ) i_rv_iopmp_dl_se (
             .enable_i(enable_i),
             .entry_match_i(entry_match_i),
@@ -54,7 +54,7 @@ generate
             .NUMBER_MDS(NUMBER_MDS),
             .NUMBER_ENTRIES(NUMBER_ENTRIES),
             .NUMBER_MASTERS(NUMBER_MASTERS),
-            .NUMBER_INSTANCES(NUMBER_INSTANCES)
+            .NUMBER_ENTRY_ANALYZERS(NUMBER_ENTRY_ANALYZERS)
         ) i_rv_iopmp_dl_default (
             .enable_i(enable_i),
             .entry_match_i(entry_match_i),

@@ -16,7 +16,7 @@ module rv_iopmp_transaction_logic #(
     parameter int unsigned NUMBER_ENTRIES = 8,
     parameter int unsigned NUMBER_MASTERS = 2,
 
-    parameter int unsigned NUMBER_INSTANCES = 32
+    parameter int unsigned NUMBER_ENTRY_ANALYZERS= 32
 ) (
     // rising-edge clock
     input  logic     clk_i,
@@ -43,13 +43,13 @@ module rv_iopmp_transaction_logic #(
     output rv_iopmp_pkg::error_capture_t err_interface_o
 );
 
-localparam int unsigned NumberOfIterations = NUMBER_ENTRIES/NUMBER_INSTANCES - 1;
+localparam int unsigned NumberOfIterations = NUMBER_ENTRIES/NUMBER_ENTRY_ANALYZERS - 1;
 localparam logic Idle            = 1'b0;
 localparam logic Verification    = 1'b1;
 
 // IOPMP Logic signals
-logic [NUMBER_INSTANCES-1:0]            entry_match;
-logic [NUMBER_INSTANCES-1:0]            entry_allow;
+logic [NUMBER_ENTRY_ANALYZERS-1:0]    entry_match;
+logic [NUMBER_ENTRY_ANALYZERS-1:0]    entry_allow;
 logic                                 dl_allow;
 logic                                 allow_transaction;
 logic                                 valid;
@@ -137,7 +137,7 @@ always_ff @(posedge clk_i or negedge rst_ni) begin
 
             Verification: begin
                 counter           <= counter + 1;
-                entry_offset      <= entry_offset + NUMBER_INSTANCES;
+                entry_offset      <= entry_offset + NUMBER_ENTRY_ANALYZERS;
                 allow_transaction <= dl_allow & iopmp_enabled_i;
                 valid             <= !iopmp_enabled_i? 1 : dl_allow | err_transaction;
             end
@@ -159,7 +159,7 @@ end
 
 // Generate block for instantiating iopmp_entry instances and entry logic
 generate
-    for (genvar i = 0; i < NUMBER_INSTANCES; i++) begin : gen_entries
+    for (genvar i = 0; i < NUMBER_ENTRY_ANALYZERS; i++) begin : gen_entry_analyzers
         automatic logic [ENTRY_ADDR_LEN-1:0] previous_entry_addr; // Get previous config
         automatic logic [ENTRY_ADDR_LEN-1:0] previous_entry_addrh; // Get previous config
         automatic logic [4 : 0] index;
@@ -168,10 +168,10 @@ generate
         assign previous_entry_addr  = (i == 0) ? '0 : entry_table[index - 1].addr.q;
         assign previous_entry_addrh = (i == 0) ? '0 : entry_table[index - 1].addrh.q;
 
-        rv_iopmp_entry #(
+        rv_iopmp_entry_analyzer #(
             .LEN        ( ENTRY_ADDR_LEN ),
             .ADDR_WIDTH ( ADDR_WIDTH     )
-        ) i_rv_iopmp_entry(
+        ) i_rv_iopmp_entry_analyzer(
             .addr_to_check_i        ( addr_to_check                       ),
             .num_bytes_i            ( num_bytes                           ),
             .transaction_type_i     ( access_type                         ),
@@ -195,7 +195,7 @@ rv_iopmp_dl_wrapper #(
     .NUMBER_MDS(NUMBER_MDS),
     .NUMBER_ENTRIES(NUMBER_ENTRIES),
     .NUMBER_MASTERS(NUMBER_MASTERS),
-    .NUMBER_INSTANCES(NUMBER_INSTANCES)
+    .NUMBER_ENTRY_ANALYZERS(NUMBER_ENTRY_ANALYZERS)
 ) i_rv_iopmp_dl_wrapper (
     .enable_i(iopmp_enabled_i & transaction_en),
     .entry_match_i(entry_match),

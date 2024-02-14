@@ -5,11 +5,11 @@ module rv_iopmp_dl_default #(
     parameter int unsigned NUMBER_MDS       = 2,
     parameter int unsigned NUMBER_ENTRIES   = 8,
     parameter int unsigned NUMBER_MASTERS   = 2,
-    parameter int unsigned NUMBER_INSTANCES = 8
+    parameter int unsigned NUMBER_ENTRY_ANALYZERS = 8
 ) (
     input logic                                enable_i,
-    input logic [NUMBER_INSTANCES-1:0]         entry_match_i,
-    input logic [NUMBER_INSTANCES-1:0]         entry_allow_i,
+    input logic [NUMBER_ENTRY_ANALYZERS-1:0]         entry_match_i,
+    input logic [NUMBER_ENTRY_ANALYZERS-1:0]         entry_allow_i,
     input logic [ 8 : 0 ]                      entry_offset_i,
     input logic [SID_WIDTH - 1:0]              sid_i,
 
@@ -44,7 +44,7 @@ always_comb begin
 
     // If a transaction is occorring and the iopmp is enabled
     if(enable_i) begin
-        if ((entry_offset_i == NUMBER_ENTRIES - NUMBER_INSTANCES) & entry_match_i == 0) begin // If match is equal to 0, there are no entries matching the transaction. Signal not hit any rule error.
+        if ((entry_offset_i == NUMBER_ENTRIES - NUMBER_ENTRY_ANALYZERS) & entry_match_i == 0) begin // If match is equal to 0, there are no entries matching the transaction. Signal not hit any rule error.
             allow_transaction_o = 0;
             err_transaction_o = 1'b1;
             err_type_o = 3'h5;
@@ -61,7 +61,7 @@ always_comb begin
                 for(integer i = 0; i < NUMBER_MDS; i++) begin
                     // Check if current MD belongs to SID, only belonging entries should report errors
                     if(srcmd_en[i]) begin
-                        for(integer j = 0; j < NUMBER_INSTANCES; j++) begin
+                        for(integer j = 0; j < NUMBER_ENTRY_ANALYZERS; j++) begin
                             index = j + entry_offset_i;
                             // Check if current entry belongs to MD j
                             if((i == 0 & index < mdcfg_table_i[i]) | (index < mdcfg_table_i[i] & index >= mdcfg_table_i[i-1])) begin 
@@ -91,7 +91,7 @@ always_comb begin
 
             // We can reach this if there were entries that signaled match, but do not belong to any MD from the current SID
             // It means although there was a match, per spec there was no match
-            if ((entry_offset_i == NUMBER_ENTRIES - NUMBER_INSTANCES) & !allow_transaction_o & !err_transaction_o) begin
+            if ((entry_offset_i == NUMBER_ENTRIES - NUMBER_ENTRY_ANALYZERS) & !allow_transaction_o & !err_transaction_o) begin
                 allow_transaction_o = 0;
                 err_transaction_o = 1'b1;
                 err_type_o = 3'h5;
