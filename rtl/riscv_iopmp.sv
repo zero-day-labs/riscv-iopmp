@@ -17,7 +17,7 @@ module riscv_iopmp #(
     parameter type         axi_req_slv_t   = logic,
     /// AXI Full Slave response struct type
     parameter type         axi_rsp_slv_t   = logic,
-    
+
     // AXI channel structs
     parameter type         axi_aw_chan_t  = logic,
     parameter type         axi_w_chan_t   = logic,
@@ -33,8 +33,8 @@ module riscv_iopmp #(
     parameter int unsigned NUMBER_MDS      = 2,
     parameter int unsigned NUMBER_ENTRIES  = 8,
     parameter int unsigned NUMBER_MASTERS  = 2,
-    parameter int unsigned NUMBER_TL_INSTANCES = 1
-
+    parameter int unsigned NUMBER_TL_INSTANCES = 1,
+    parameter int unsigned NUMBER_ENTRY_ANALYZERS = 32
 ) (
     input logic clk_i,
     input logic rst_ni,
@@ -66,11 +66,13 @@ rv_iopmp_pkg::srcmd_entry_t [NUMBER_MASTERS - 1:0] srcmd_table;
 rv_iopmp_pkg::iopmp_entry_t [NUMBER_ENTRIES - 1:0] entry_table;
 
 // Transaction logic
+logic                                  ready[NUMBER_TL_INSTANCES];
+logic                                  valid[NUMBER_TL_INSTANCES];
 logic                         transaction_en[NUMBER_TL_INSTANCES];
 logic [ADDR_WIDTH - 1:0]                addr[NUMBER_TL_INSTANCES];
 logic [$clog2(DATA_WIDTH/8) :0]    num_bytes[NUMBER_TL_INSTANCES];
-logic [SidWidth     - 1:0]              sid[NUMBER_TL_INSTANCES];
-rv_iopmp_pkg::access_t                         access_type[NUMBER_TL_INSTANCES];
+logic [SidWidth     - 1:0]               sid[NUMBER_TL_INSTANCES];
+rv_iopmp_pkg::access_t           access_type[NUMBER_TL_INSTANCES];
 
 logic [NUMBER_TL_INSTANCES - 1:0]           allow_transaction_arr;
 rv_iopmp_pkg::error_capture_t       [NUMBER_TL_INSTANCES - 1:0] err_interface;
@@ -134,7 +136,8 @@ generate
             .SID_WIDTH (SidWidth),  // The signal which connects to the SID is the user field
             .NUMBER_MDS(NumberMds),
             .NUMBER_ENTRIES(NUMBER_ENTRIES),
-            .NUMBER_MASTERS(NUMBER_MASTERS)
+            .NUMBER_MASTERS(NUMBER_MASTERS),
+            .NUMBER_ENTRY_ANALYZERS(NUMBER_ENTRY_ANALYZERS)
         ) i_rv_iopmp_transaction_logic(
             // rising-edge clock
             .clk_i(clk_i),
@@ -153,6 +156,8 @@ generate
             .sid_i(sid[i]),
             .access_type_i(access_type[i]),
             .allow_transaction_o(allow_transaction_arr[i]),
+            .ready_o(ready[i]),
+            .valid_o(valid[i]),
 
             .err_interface_o(err_interface[i])
         );
@@ -190,7 +195,9 @@ rv_iopmp_data_abstractor_axi #(
     .sid_o(sid[0]),
     .access_type_o(access_type[0]),
 
-    .iopmp_allow_transaction_i(allow_transaction_arr[0])
+    .iopmp_allow_transaction_i(allow_transaction_arr[0]),
+    .ready_i(ready[0]),
+    .valid_i(valid[0])
 );
 
 

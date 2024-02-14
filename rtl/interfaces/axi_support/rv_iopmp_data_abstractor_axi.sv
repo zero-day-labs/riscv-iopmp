@@ -1,7 +1,9 @@
-typedef enum logic [1:0] {
-    IDLE            = 2'b00,
-    MULTI_CYCLE_VER = 2'b01,
-    AXI_HANDSHAKE          = 2'b10
+typedef enum logic [2:0] {
+    IDLE            = 3'b000,
+    SETUP           = 3'b001,
+    MULTI_CYCLE_VER = 3'b010,
+    WAIT_IOPMP      = 3'b011,
+    AXI_HANDSHAKE   = 3'b100
 } state_t;
 
 module rv_iopmp_data_abstractor_axi #(
@@ -43,7 +45,9 @@ module rv_iopmp_data_abstractor_axi #(
     output logic [SID_WIDTH     - 1:0]             sid_o,
     output rv_iopmp_pkg::access_t                  access_type_o,
 
-    input  logic iopmp_allow_transaction_i
+    input  logic                 iopmp_allow_transaction_i,
+    input  logic                                   ready_i,
+    input  logic                                   valid_i
 );
 
 logic enable_checking;
@@ -51,6 +55,7 @@ logic allow_transaction;
 logic transaction_allowed;
 logic aw_request;
 logic ar_request;
+logic detect_pulse;
 
 // AxADDR
 logic [ADDR_WIDTH-1:0]             addr;
@@ -69,7 +74,7 @@ logic bc_bound_violation;
 logic [ADDR_WIDTH-1:0]  wrap_boundary;
 
 // State register
-logic [1:0] state_reg, next_state;
+state_t state_reg;
 
 // Helper wire
 assign allow_transaction = iopmp_allow_transaction_i & bc_allow_request;
@@ -116,9 +121,12 @@ always_ff @(posedge clk_i or negedge rst_ni) begin
 
             MULTI_CYCLE_VER: begin
                 state_reg <= (((burst_type == axi_pkg::BURST_WRAP) & (addr_to_check == wrap_boundary)) |
-                                (counter == burst_length) | !allow_transaction)?
-                                    AXI_HANDSHAKE : MULTI_CYCLE_VER;
+                                (counter >= burst_length)) & (detect_pulse != ready_i & !ready_i) ?
+                                    WAIT_IOPMP : ((!allow_transaction) && valid_i)? AXI_HANDSHAKE :
+                                        MULTI_CYCLE_VER;
             end
+
+            WAIT_IOPMP: state_reg <= valid_i? AXI_HANDSHAKE: state_reg;
 
             // Wait until the handshake has ended
             AXI_HANDSHAKE:  state_reg <= (ar_request & !slv_req_i.ar_valid) |
@@ -151,6 +159,7 @@ always_ff @(posedge clk_i or negedge rst_ni) begin
             IDLE: begin
                 counter <= 0;
                 transaction_allowed <= 0;
+                detect_pulse <= ready_i;
 
                 aw_request      <= slv_req_i.aw_valid? 1'b1 : '0;
                 ar_request      <= slv_req_i.aw_valid? '0 : slv_req_i.ar_valid? 1'b1 : 0;
@@ -164,18 +173,24 @@ always_ff @(posedge clk_i or negedge rst_ni) begin
             end
 
             MULTI_CYCLE_VER: begin
-                counter <= counter + 1;
+                if (detect_pulse != ready_i) begin // Detect changes in the state, meaning iopmp has started or ended
+                    // Only on the down, as it means the iopmp has started correctly
+                    counter <= (!ready_i)? counter + 1: counter;
+                    addr_to_check <= (!ready_i)? addr_to_check + num_bytes : addr_to_check;  // Check for the last transition, no need to increment
+                end
 
-                addr_to_check <= addr_to_check + num_bytes;  // Check for the last transition, no need to increment
-                transaction_allowed <= iopmp_allow_transaction_i & bc_allow_request;
+                transaction_allowed <= (valid_i)? iopmp_allow_transaction_i & bc_allow_request : transaction_allowed;
+                detect_pulse <= ready_i;
             end
+
+            WAIT_IOPMP: transaction_allowed <= (valid_i)? iopmp_allow_transaction_i & bc_allow_request : transaction_allowed;
 
             default: begin
                 counter             <= counter;
                 ar_request          <= ar_request;
                 aw_request          <= aw_request;
                 transaction_allowed <= transaction_allowed;
-                num_bytes         <= num_bytes;
+                num_bytes           <= num_bytes;
 
                 addr_to_check       <= addr_to_check;
                 addr                <= addr;
@@ -188,7 +203,9 @@ always_ff @(posedge clk_i or negedge rst_ni) begin
 end
 
 always_comb begin
-    transaction_en_o = (state_reg == MULTI_CYCLE_VER) ? 1 : 0;
+    // Prevent another from starting when an invalidation already occurred
+    transaction_en_o = (state_reg == MULTI_CYCLE_VER && counter == 0) ? 1 : 
+                        ((!allow_transaction) && valid_i)? 0: (state_reg == MULTI_CYCLE_VER)? 1 : 0;
     addr_o           = addr_to_check;
     num_bytes_o      = num_bytes;
     sid_o            = (aw_request)? slv_req_i.aw.nsaid : slv_req_i.ar.nsaid;
