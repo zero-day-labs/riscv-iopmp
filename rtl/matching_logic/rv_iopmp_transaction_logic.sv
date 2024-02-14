@@ -1,18 +1,20 @@
-// Author:      Luís Cunha
-// Description: IOPMP draft5
-
-
+// Author: Luís Cunha <luisccunha8@gmail.com>
+// Date: 14/02/2024
+// Acknowledges:
+//
+// Description: RISC-V IOPMP Transaction Logic.
+//              Module responsible for encapsulating all of the logic responsible for assessing transactions
 
 module rv_iopmp_transaction_logic #(
     // width of address bus in bits
-    parameter int unsigned ADDR_WIDTH     = 64,
+    parameter int unsigned ADDR_WIDTH      = 64,
     // width of the data bus in bits
-    parameter int unsigned DATA_WIDTH     = 64,
+    parameter int unsigned DATA_WIDTH      = 64,
     // width of sid signal
     parameter int unsigned SID_WIDTH       = 8,
     // Implementation specific parameters
     parameter int unsigned ENTRY_ADDR_LEN = 32,
-    parameter int unsigned NUMBER_MDS = 2,
+    parameter int unsigned NUMBER_MDS     = 2,
     parameter int unsigned NUMBER_ENTRIES = 8,
     parameter int unsigned NUMBER_MASTERS = 2,
 
@@ -40,19 +42,23 @@ module rv_iopmp_transaction_logic #(
     output logic                                   valid_o,
 
     // Error interface
-    output rv_iopmp_pkg::error_capture_t err_interface_o
+    output rv_iopmp_pkg::error_capture_t    err_interface_o
 );
 
 localparam int unsigned NumberOfIterations = NUMBER_ENTRIES/NUMBER_ENTRY_ANALYZERS - 1;
-localparam logic Idle            = 1'b0;
-localparam logic Verification    = 1'b1;
+
+// TL States
+typedef enum logic[1:0] {
+    IDLE,                    // 0
+    VERIFICATION             // 1
+} state_t;
 
 // IOPMP Logic signals
-logic [NUMBER_ENTRY_ANALYZERS-1:0]    entry_match;
-logic [NUMBER_ENTRY_ANALYZERS-1:0]    entry_allow;
-logic                                 dl_allow;
-logic                                 allow_transaction;
-logic                                 valid;
+logic [NUMBER_ENTRY_ANALYZERS-1:0] entry_match;
+logic [NUMBER_ENTRY_ANALYZERS-1:0] entry_allow;
+logic                              dl_allow;
+logic                              allow_transaction;
+logic                              valid;
 
 rv_iopmp_pkg::iopmp_entry_t [NUMBER_ENTRIES - 1:0] entry_table;
 
@@ -61,13 +67,12 @@ logic        err_transaction;
 logic [2:0]  err_type;
 logic [15:0] err_entry_index;
 
-
-// State register
-logic [1:0] state_reg;
+// State Machine variables
+state_t     state_reg;
 logic [8:0] counter;
 logic [8:0] entry_offset;
 
-
+// Helper logic - propagate signals into downstream modules
 logic                            transaction_en;
 logic [ADDR_WIDTH - 1 : 0]       addr_to_check;
 logic [$clog2(DATA_WIDTH/8) :0]  num_bytes;
@@ -75,9 +80,13 @@ logic [SID_WIDTH - 1:0]          sid;
 rv_iopmp_pkg::access_t           access_type;
 
 assign allow_transaction_o = allow_transaction;
-assign transaction_en = (state_reg == Verification)? 1 : 0;
-assign ready_o        = (state_reg == Idle)? 1 : 0;
-assign valid_o        = (state_reg == Verification)? 0 : valid;
+
+// Signal for the decision logic modules, go to 1 when in verification
+assign transaction_en = (state_reg == VERIFICATION)? 1 : 0;
+// Module is only ready to receive another request when in IDLE
+assign ready_o        = (state_reg == IDLE)? 1 : 0;
+// Make sure the valid signal is pulled to 0 when in verification
+assign valid_o        = (state_reg == VERIFICATION)? 0 : valid;
 
 // Register entries to break long wires
 always_ff @(posedge clk_i) begin
@@ -85,25 +94,24 @@ always_ff @(posedge clk_i) begin
         entry_table[i] <= entry_table_i[i];
 end
 
-
-
 // State transition part of the FSM
 always_ff @(posedge clk_i or negedge rst_ni) begin
     if (!rst_ni) begin
         // Initialization on reset
-        state_reg <= Idle;
+        state_reg <= IDLE;
     end else begin
         // State transition logic
         case (state_reg)
-            Idle:   state_reg <= transaction_en_i? Verification : Idle;
+            // Transaction enabled? Start verification
+            IDLE:   state_reg <= transaction_en_i? VERIFICATION : IDLE;
 
-            Verification: begin
-                // If the iopmp is off, or we are on the last set of entries, or the transaction was already allowed, or dismissed, proceed
+            VERIFICATION: begin
+                // If the iopmp is off, or we are on the last set of entries, or the transaction was already allowed or dismissed, proceed
                 state_reg <= !iopmp_enabled_i | (counter == NumberOfIterations) | dl_allow | err_transaction?
-                    Idle : Verification;
+                    IDLE : VERIFICATION;
             end
 
-            default: state_reg <= Idle;
+            default: state_reg <= IDLE;
         endcase
     end
 end
@@ -120,11 +128,12 @@ always_ff @(posedge clk_i or negedge rst_ni) begin
         allow_transaction <= 0;
         valid             <= 0;
     end else begin
-        // Counter increment logic
         case (state_reg)
-            Idle: begin
+            IDLE: begin
                 counter       <= 0;
                 entry_offset  <= 0;
+
+                // Register the input values to assure signal stability during verification
                 addr_to_check <= transaction_en_i? addr_i        : 0;          // Saves an extra state for setup
                 num_bytes     <= transaction_en_i? num_bytes_i   : 0;
                 sid           <= transaction_en_i? sid_i         : 0;
@@ -135,10 +144,16 @@ always_ff @(posedge clk_i or negedge rst_ni) begin
                 valid         <= 0;
             end
 
-            Verification: begin
+            VERIFICATION: begin
+                // Increment counter which indicates how many iterations have passed
                 counter           <= counter + 1;
+                // Increment entry_offset to load different entries into the entry_analizers
                 entry_offset      <= entry_offset + NUMBER_ENTRY_ANALYZERS;
+                // Register the allow_transaction for signal stability on the output
                 allow_transaction <= dl_allow & iopmp_enabled_i;
+                // If the transaction isn't allowed, an error occurs, if allowed dl_allow at 1.
+                // Either way, valid will be at one in next cycle. If the IOPMP isn't enabled say instantly
+                // that the transaction is not allowed
                 valid             <= !iopmp_enabled_i? 1 : dl_allow | err_transaction;
             end
 
@@ -160,11 +175,11 @@ end
 // Generate block for instantiating iopmp_entry instances and entry logic
 generate
     for (genvar i = 0; i < NUMBER_ENTRY_ANALYZERS; i++) begin : gen_entry_analyzers
-        automatic logic [ENTRY_ADDR_LEN-1:0] previous_entry_addr; // Get previous config
+        automatic logic [ENTRY_ADDR_LEN-1:0] previous_entry_addr;  // Get previous config
         automatic logic [ENTRY_ADDR_LEN-1:0] previous_entry_addrh; // Get previous config
-        automatic logic [4 : 0] index;
+        automatic logic [4 : 0] index;                             // Get correct index for the entries to analyze
 
-        assign index = i + entry_offset;
+        assign index = i + entry_offset;        // Current entries are allways dependent on the iteration the state machine is on
         assign previous_entry_addr  = (i == 0) ? '0 : entry_table[index - 1].addr.q;
         assign previous_entry_addrh = (i == 0) ? '0 : entry_table[index - 1].addrh.q;
 
@@ -191,6 +206,8 @@ endgenerate
 
 // Disabled verilator lint_off WIDTHEXPAND
 // Disabled verilator lint_off WIDTHTRUNC
+
+// Instantiation of the decision logic wrapper, which performs the final checking according to MD and SID
 rv_iopmp_dl_wrapper #(
     .NUMBER_MDS(NUMBER_MDS),
     .NUMBER_ENTRIES(NUMBER_ENTRIES),
