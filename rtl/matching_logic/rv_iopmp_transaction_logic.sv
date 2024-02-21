@@ -57,120 +57,164 @@ typedef enum logic[1:0] {
 logic [NUMBER_ENTRY_ANALYZERS-1:0] entry_match;
 logic [NUMBER_ENTRY_ANALYZERS-1:0] entry_allow;
 logic                              dl_allow;
-logic                              allow_transaction;
-logic                              valid;
+logic                              allow_transaction_n, allow_transaction_q;
+logic                              valid_n, valid_q;
 
-rv_iopmp_pkg::iopmp_entry_t [NUMBER_ENTRIES - 1:0] entry_table;
+rv_iopmp_pkg::iopmp_entry_t [NUMBER_ENTRY_ANALYZERS - 1:0] entry_table;
+rv_iopmp_pkg::mdcfg_entry_t [NUMBER_MDS - 1:0]     mdcfg_table;
 
 // IOPMP Error signals
 logic        err_transaction;
 logic [2:0]  err_type;
 logic [15:0] err_entry_index;
+rv_iopmp_pkg::error_capture_t err_interface;
 
 // State Machine variables
-state_t     state_reg;
-logic [8:0] counter;
-logic [8:0] entry_offset;
+state_t     state_n, state_q;
+logic [8:0] iteration_counter_n, iteration_counter_q;
+logic [8:0] entry_offset_n, entry_offset_q;
 
 // Helper logic - propagate signals into downstream modules
 logic                            transaction_en;
-logic [ADDR_WIDTH - 1 : 0]       addr_to_check;
-logic [$clog2(DATA_WIDTH/8) :0]  num_bytes;
-logic [SID_WIDTH - 1:0]          sid;
-rv_iopmp_pkg::access_t           access_type;
+logic [ADDR_WIDTH - 1 : 0]       addr_to_check_n, addr_to_check_q;
+logic [$clog2(DATA_WIDTH/8) :0]  num_bytes_n, num_bytes_q;
+logic [SID_WIDTH - 1:0]          sid_n, sid_q;
+rv_iopmp_pkg::access_t           access_type_n, access_type_q;
 
-assign allow_transaction_o = allow_transaction;
+assign allow_transaction_o = allow_transaction_q;
 
 // Signal for the decision logic modules, go to 1 when in verification
-assign transaction_en = (state_reg == VERIFICATION)? 1 : 0;
+assign transaction_en = (state_q == VERIFICATION)? 1 : 0;
 // Module is only ready to receive another request when in IDLE
-assign ready_o        = (state_reg == IDLE)? 1 : 0;
+assign ready_o        = (state_q == IDLE)? 1 : 0;
 // Make sure the valid signal is pulled to 0 when in verification
-assign valid_o        = (state_reg == VERIFICATION)? 0 : valid;
+assign valid_o        = (state_q == VERIFICATION)? 0 : valid_q;
+// Output error_capture
+assign err_interface_o = err_interface;
 
-// Register entries to break long wires
+// Register entries and mds to break long wires
 always_ff @(posedge clk_i) begin
-    for(integer i = 0; i < NUMBER_ENTRIES; i++)
-        entry_table[i] <= entry_table_i[i];
-end
-
-// State transition part of the FSM
-always_ff @(posedge clk_i or negedge rst_ni) begin
-    if (!rst_ni) begin
-        // Initialization on reset
-        state_reg <= IDLE;
-    end else begin
-        // State transition logic
-        case (state_reg)
-            // Transaction enabled? Start verification
-            IDLE:   state_reg <= transaction_en_i? VERIFICATION : IDLE;
-
-            VERIFICATION: begin
-                // If the iopmp is off, or we are on the last set of entries, or the transaction was already allowed or dismissed, proceed
-                state_reg <= !iopmp_enabled_i | (counter == NumberOfIterations) | dl_allow | err_transaction?
-                    IDLE : VERIFICATION;
-            end
-
-            default: state_reg <= IDLE;
-        endcase
+    for(integer i = 0; i < NUMBER_ENTRY_ANALYZERS; i++) begin
+        if(state_q == VERIFICATION)
+            entry_table[i] <= entry_table_i[i + entry_offset_n];
+        else
+            entry_table[i] <= entry_table_i[i];
+    end
+    for(integer i = 0; i < NUMBER_MDS; i++) begin
+        mdcfg_table[i] <= mdcfg_table_i[i];
     end
 end
 
-// Sequential part of the state machine
+always_comb begin
+    state_n                 = state_q;
+    iteration_counter_n     = iteration_counter_q;
+    entry_offset_n          = entry_offset_q;
+    addr_to_check_n         = addr_to_check_q;
+    num_bytes_n             = num_bytes_q;
+    sid_n                   = sid_q;
+    access_type_n           = access_type_q;
+
+    valid_n                 = valid_q;
+    allow_transaction_n     = allow_transaction_q;
+
+    case (state_q)
+        IDLE: begin
+            iteration_counter_n       = 0;
+            entry_offset_n  = 0;
+
+            // Register the input values to assure signal stability during verification
+            addr_to_check_n = addr_i;
+            num_bytes_n     = num_bytes_i;
+            sid_n           = sid_i;
+            access_type_n   = access_type_i;
+
+            // Assure the valid is not 1 for one cycle
+            // TODO: Maybe only when any entry is changed it activates a procedure to "reset"
+            valid_n         = 0;
+
+            state_n     = transaction_en_i? VERIFICATION : IDLE;
+        end
+
+        VERIFICATION: begin
+            // If the iopmp is off, or we are on the last set of entries, or the transaction was already allowed or dismissed, proceed
+            state_n = !iopmp_enabled_i | (iteration_counter_q == NumberOfIterations) | dl_allow |
+                            err_transaction? IDLE : VERIFICATION;
+
+            // Increment counter which indicates how many iterations have passed
+            iteration_counter_n           = iteration_counter_q + 1;
+            // Increment entry_offset to load different entries into the entry_analizers
+            entry_offset_n      = entry_offset_q + NUMBER_ENTRY_ANALYZERS;
+            // Register the allow_transaction for signal stability on the output
+            allow_transaction_n = dl_allow & iopmp_enabled_i;
+
+            // If the transaction isn't allowed, an error occurs, if allowed dl_allow at 1.
+            // Either way, valid will be at one in next cycle. If the IOPMP isn't enabled, say instantly
+            // that the transaction is not allowed
+            valid_n             = !iopmp_enabled_i? 1 : dl_allow | err_transaction;
+        end
+
+        default:;
+    endcase
+end
+
+// Sequential process
 always_ff @(posedge clk_i or negedge rst_ni) begin
     if (!rst_ni) begin
-        counter           <= 0;
-        addr_to_check     <= 0;
-        num_bytes         <= 0;
-        sid               <= 0;
-        access_type       <= rv_iopmp_pkg::ACCESS_NONE;
-        entry_offset      <= 0;
-        allow_transaction <= 0;
-        valid             <= 0;
+        state_q                 <= IDLE;
+        iteration_counter_q     <= 0;
+        iteration_counter_q    <= 0;
+        entry_offset_q          <= 0;
+        addr_to_check_q         <= 0;
+        num_bytes_q             <= 0;
+        sid_q                   <= 0;
+        access_type_q           <= rv_iopmp_pkg::ACCESS_NONE;
+
+        valid_q                 <= 0;
+        allow_transaction_q     <= 0;
     end else begin
-        case (state_reg)
-            IDLE: begin
-                counter       <= 0;
-                entry_offset  <= 0;
+        state_q                 <= state_n;
+        iteration_counter_q     <= iteration_counter_n;
+        entry_offset_q          <= entry_offset_n;
+        addr_to_check_q         <= addr_to_check_n;
+        num_bytes_q             <= num_bytes_n;
+        sid_q                   <= sid_n;
+        access_type_q           <= access_type_n;
 
-                // Register the input values to assure signal stability during verification
-                addr_to_check <= transaction_en_i? addr_i        : 0;          // Saves an extra state for setup
-                num_bytes     <= transaction_en_i? num_bytes_i   : 0;
-                sid           <= transaction_en_i? sid_i         : 0;
-                access_type   <= transaction_en_i? access_type_i : rv_iopmp_pkg::ACCESS_NONE;
-
-                // Assure the valid is not 1 for one cycle
-                // TODO: Maybe only when any entry is changed it activates a procedure to "reset"
-                valid         <= 0;
-            end
-
-            VERIFICATION: begin
-                // Increment counter which indicates how many iterations have passed
-                counter           <= counter + 1;
-                // Increment entry_offset to load different entries into the entry_analizers
-                entry_offset      <= entry_offset + NUMBER_ENTRY_ANALYZERS;
-                // Register the allow_transaction for signal stability on the output
-                allow_transaction <= dl_allow & iopmp_enabled_i;
-                // If the transaction isn't allowed, an error occurs, if allowed dl_allow at 1.
-                // Either way, valid will be at one in next cycle. If the IOPMP isn't enabled say instantly
-                // that the transaction is not allowed
-                valid             <= !iopmp_enabled_i? 1 : dl_allow | err_transaction;
-            end
-
-            default: begin
-                counter           <= counter;
-                addr_to_check     <= addr_to_check;
-                num_bytes         <= num_bytes    ;
-                sid               <= sid          ;
-                access_type       <= access_type  ;
-                entry_offset      <= entry_offset ;
-                allow_transaction <= allow_transaction;
-                valid             <= valid;
-            end
-        endcase
+        valid_q                 <= valid_n;
+        allow_transaction_q     <= allow_transaction_n;
     end
 end
 
+// Error capture logic
+always_ff @(posedge clk_i) begin
+    if(err_transaction) begin
+        // Record transaction type
+        case(access_type_q)
+            rv_iopmp_pkg::ACCESS_READ, rv_iopmp_pkg::ACCESS_WRITE:
+                err_interface.ttype <= access_type_q[1:0]; // Eliminate possible truncate errors
+            rv_iopmp_pkg::ACCESS_EXECUTION:
+                err_interface.ttype <= 2'h3;
+            default:
+                err_interface.ttype <= 2'h1; // Unlikely to reach here, but use some type of transaction as 0 is reserved
+        endcase
+        err_interface.error_detected <= 1;
+        err_interface.etype          <= err_type;
+        err_interface.err_reqid.sid  <= sid_q;
+        err_interface.err_reqid.eid  <= err_entry_index;
+
+        err_interface.err_reqaddr   <= addr_to_check_q[31:0];
+        err_interface.err_reqaddrh  <= addr_to_check_q[63:32];
+    end
+    else begin
+        err_interface.error_detected <= 0;
+        err_interface.ttype          <= 0;
+        err_interface.etype          <= 0;
+        err_interface.err_reqid.sid  <= 0;
+        err_interface.err_reqid.eid  <= 0;
+        err_interface.err_reqaddr    <= 0;
+        err_interface.err_reqaddrh   <= 0;
+    end
+end
 
 // Generate block for instantiating iopmp_entry instances and entry logic
 generate
@@ -179,7 +223,7 @@ generate
         automatic logic [ENTRY_ADDR_LEN-1:0] previous_entry_addrh; // Get previous config
         automatic logic [4 : 0] index;                             // Get correct index for the entries to analyze
 
-        assign index = i + entry_offset;        // Current entries are allways dependent on the iteration the state machine is on
+        assign index = i;// + entry_offset;        // Current entries are allways dependent on the iteration the state machine is on
         assign previous_entry_addr  = (i == 0) ? '0 : entry_table[index - 1].addr.q;
         assign previous_entry_addrh = (i == 0) ? '0 : entry_table[index - 1].addrh.q;
 
@@ -187,9 +231,9 @@ generate
             .LEN        ( ENTRY_ADDR_LEN ),
             .ADDR_WIDTH ( ADDR_WIDTH     )
         ) i_rv_iopmp_entry_analyzer(
-            .addr_to_check_i        ( addr_to_check                       ),
-            .num_bytes_i            ( num_bytes                           ),
-            .transaction_type_i     ( access_type                         ),
+            .addr_to_check_i        ( addr_to_check_q                       ),
+            .num_bytes_i            ( num_bytes_q                           ),
+            .transaction_type_i     ( access_type_q                         ),
 
             .addr_i                 ( entry_table[index].addr.q  ),
             .addrh_i                ( entry_table[index].addrh.q ),
@@ -217,14 +261,14 @@ rv_iopmp_dl_wrapper #(
     .enable_i(iopmp_enabled_i & transaction_en),
     .entry_match_i(entry_match),
     .entry_allow_i(entry_allow),
-    .entry_offset_i(entry_offset),
+    .entry_offset_i(entry_offset_q),
 
-    .sid_i(sid),
+    .sid_i(sid_q),
     .srcmd_table_i(srcmd_table_i),
-    .mdcfg_table_i(mdcfg_table_i),
+    .mdcfg_table_i(mdcfg_table),
 
     // Transaction
-    .access_type_i(access_type),
+    .access_type_i(access_type_q),
     .allow_transaction_o(dl_allow),
 
     // IOPMP Error signals
@@ -232,38 +276,5 @@ rv_iopmp_dl_wrapper #(
     .err_type_o(err_type),
     .err_entry_index_o(err_entry_index)
 );
-
-// Error capture logic
-always_comb begin
-    err_interface_o.error_detected = 0;
-    err_interface_o.ttype          = 0;
-    err_interface_o.etype          = 0;
-    err_interface_o.err_reqid.sid  = 0;
-    err_interface_o.err_reqid.eid  = 0;
-    err_interface_o.err_reqaddr    = 0;
-    err_interface_o.err_reqaddrh   = 0;
-
-    if(err_transaction) begin
-        // Record transaction type
-        case(access_type)
-            rv_iopmp_pkg::ACCESS_READ, rv_iopmp_pkg::ACCESS_WRITE:
-                err_interface_o.ttype = access_type[1:0]; // Eliminate possible truncate errors
-            rv_iopmp_pkg::ACCESS_EXECUTION:
-                err_interface_o.ttype = 2'h3;
-            default:
-                err_interface_o.ttype = 2'h1; // Unlikely to reach here, but use some type of transaction as 0 is reserved
-        endcase
-        err_interface_o.error_detected = 1;
-        err_interface_o.etype = err_type;
-        err_interface_o.err_reqid.sid = sid;
-        err_interface_o.err_reqid.eid = err_entry_index;
-
-        err_interface_o.err_reqaddr   = addr_to_check[31:0];
-        err_interface_o.err_reqaddrh  = addr_to_check[63:32];
-    end
-end
-// Disabled verilator lint_on WIDTHTRUNC
-// Disabled verilator lint_on WIDTHEXPAND
-
 
 endmodule
