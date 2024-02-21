@@ -34,7 +34,7 @@ module riscv_iopmp #(
     parameter int unsigned NUMBER_ENTRIES  = 8,
     parameter int unsigned NUMBER_MASTERS  = 2,
     parameter int unsigned NUMBER_TL_INSTANCES = 1,
-    parameter int unsigned NUMBER_ENTRY_ANALYZERS = 32
+    parameter int unsigned NUMBER_ENTRY_ANALYZERS = 8
 ) (
     input logic clk_i,
     input logic rst_ni,
