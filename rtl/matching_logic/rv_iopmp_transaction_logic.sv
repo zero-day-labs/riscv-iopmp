@@ -128,7 +128,7 @@ always_comb begin
             sid_n           = sid_i;
             access_type_n   = access_type_i;
 
-            // Assure the valid is not 1 for one cycle
+            // Assure the valid does not stay 1 for more than one cycle
             // TODO: Maybe only when any entry is changed it activates a procedure to "reset"
             valid_n         = 0;
 

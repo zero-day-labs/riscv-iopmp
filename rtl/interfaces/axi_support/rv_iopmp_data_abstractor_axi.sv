@@ -52,21 +52,22 @@ module rv_iopmp_data_abstractor_axi #(
 
 logic enable_checking;
 logic allow_transaction;
-logic transaction_allowed;
-logic aw_request;
-logic ar_request;
-logic detect_pulse;
+logic [8:0] iteration_counter_n, iteration_counter_q;
+logic transaction_allowed_n, transaction_allowed_q;
+logic aw_request_n, aw_request_q;
+logic ar_request_n, ar_request_q;
+logic ready_reg;
 
 // AxADDR
-logic [ADDR_WIDTH-1:0]             addr;
-logic [ADDR_WIDTH-1:0]             addr_to_check;
-logic [$clog2(DATA_WIDTH/8) :0]    num_bytes;
+logic [ADDR_WIDTH-1:0]             addr_n, addr_q;
+logic [ADDR_WIDTH-1:0]             addr_to_check_n, addr_to_check_q;
+logic [$clog2(DATA_WIDTH/8) :0]    num_bytes_n, num_bytes_q;
 // AxBURST
-axi_pkg::burst_t         burst_type;
+axi_pkg::burst_t         burst_type_n, burst_type_q;
 // AxLEN
-axi_pkg::len_t           burst_length;
+axi_pkg::len_t           burst_length_n, burst_length_q;
 // AxSIZE
-axi_pkg::size_t          size;
+axi_pkg::size_t          size_n, size_q;
 
 // Boundary checking
 logic bc_allow_request;
@@ -74,143 +75,150 @@ logic bc_bound_violation;
 logic [ADDR_WIDTH-1:0]  wrap_boundary;
 
 // State register
-state_t state_reg;
+state_t state_n, state_q;
+
+// AXI request bus used to intercept AxADDR and AxVALID parameters, and connect to the demux slave port
+axi_req_nsaid_t   axi_aux_req;
 
 // Helper wire
 assign allow_transaction = iopmp_allow_transaction_i & bc_allow_request;
 
+// Prevent another from starting when an invalidation already occurred
+assign transaction_en_o = (state_q == MULTI_CYCLE_VER && iteration_counter_q == 0) ? 1 :
+                            ((!allow_transaction) && valid_i)? 0: (state_q == MULTI_CYCLE_VER)? 1 : 0;
+assign addr_o           = addr_to_check_q;
+assign num_bytes_o      = num_bytes_q;
+assign sid_o            = (aw_request_q)? slv_req_i.aw.nsaid : slv_req_i.ar.nsaid;
+assign access_type_o    = (aw_request_q)? rv_iopmp_pkg::ACCESS_WRITE : rv_iopmp_pkg::ACCESS_READ;
+
+
+always_comb begin
+    axi_aux_req = slv_req_i;
+
+    // Do not perform the handshake, while the checking is ongoing
+    axi_aux_req.aw_valid = (state_q == AXI_HANDSHAKE) ? aw_request_q : 0;
+    axi_aux_req.ar_valid = (state_q == AXI_HANDSHAKE) ? ar_request_q : 0;
+end
+
+always_comb begin
+    state_n                 = state_q;
+    iteration_counter_n     = iteration_counter_q;
+    transaction_allowed_n   = transaction_allowed_q;
+
+    aw_request_n      = aw_request_q;
+    ar_request_n      = ar_request_q;
+
+    num_bytes_n       = num_bytes_q;
+    addr_n            = addr_q;
+    addr_to_check_n   = addr_to_check_q;
+    size_n            = size_q;
+    burst_type_n      = burst_type_q;
+    burst_length_n    = burst_length_q;
+
+    case (state_q)
+        IDLE: begin
+            state_n = (slv_req_i.aw_valid | slv_req_i.ar_valid)? MULTI_CYCLE_VER : IDLE;
+
+            iteration_counter_n     = 0;
+            transaction_allowed_n   = 0;
+            //ready_reg           <= ready_i;
+
+            // Registering this variables assures stability during operation
+            aw_request_n    = slv_req_i.aw_valid? 1'b1 : '0;
+            ar_request_n    = slv_req_i.aw_valid? '0 : slv_req_i.ar_valid? 1'b1 : 0;
+
+            num_bytes_n       = slv_req_i.aw_valid ? axi_pkg::num_bytes(slv_req_i.aw.size): axi_pkg::num_bytes(slv_req_i.ar.size);
+            addr_n            = slv_req_i.aw_valid ? slv_req_i.aw.addr : slv_req_i.ar.addr;
+            addr_to_check_n   = slv_req_i.aw_valid ? slv_req_i.aw.addr : slv_req_i.ar.addr;
+            size_n            = slv_req_i.aw_valid ? slv_req_i.aw.size : slv_req_i.ar.size;
+            burst_type_n      = slv_req_i.aw_valid ? slv_req_i.aw.burst: slv_req_i.ar.burst;
+            burst_length_n    = slv_req_i.aw_valid ? slv_req_i.aw.len  : slv_req_i.ar.len;
+        end
+
+        MULTI_CYCLE_VER: begin
+            // If we are in burst mode, and the wrap boundary equals the addr_to_check
+            // or if we are on the last address to check, and the IOPMP has started -> WAIT_IOPMP
+            // Else, the transaction was already not accepted, proceed
+            state_n = (((burst_type_q == axi_pkg::BURST_WRAP) & (addr_to_check_q == wrap_boundary)) |
+                        (iteration_counter_q >= burst_length_q)) & (ready_reg != ready_i & !ready_i) ?
+                            WAIT_IOPMP : ((!allow_transaction) && valid_i)? AXI_HANDSHAKE :
+                                MULTI_CYCLE_VER;
+
+            // Detect a negedge of the ready, indicating IOPMP has started
+            if(ready_reg != ready_i & !ready_i) begin
+                iteration_counter_n = iteration_counter_q + 1;
+                addr_to_check_n     = addr_to_check_q + num_bytes_q;
+            end
+        end
+
+        // Everything was accepted until now, so just wait and record the last permission and pass it on
+        WAIT_IOPMP: begin
+            // Wait for IOPMP to signal it has ended
+            state_n = valid_i? AXI_HANDSHAKE: WAIT_IOPMP;
+
+            transaction_allowed_n = iopmp_allow_transaction_i & bc_allow_request;
+        end
+
+        // Wait for the AXI_HANDSHAKE, that happens when ax_valid is asserted to 0
+        AXI_HANDSHAKE:  state_n = (ar_request_q & !slv_req_i.ar_valid) |
+                                    (aw_request_q & !slv_req_i.aw_valid)? IDLE: AXI_HANDSHAKE;
+
+        default: ;
+    endcase
+end
+
+// Sequential part of the state machine
+always_ff @(posedge clk_i or negedge rst_ni) begin
+    if (!rst_ni) begin
+        state_q                 <= IDLE;
+        iteration_counter_q     <= 0;
+        transaction_allowed_q   <= 0;
+
+        aw_request_q            <= 0;
+        ar_request_q            <= 0;
+
+        num_bytes_q             <= 0;
+        addr_q                  <= 0;
+        addr_to_check_q         <= 0;
+        size_q                  <= 0;
+        burst_type_q            <= 0;
+        burst_length_q          <= 0;
+        ready_reg               <= 0;
+    end else begin
+        state_q                 <= state_n;
+        iteration_counter_q     <= iteration_counter_n;
+        transaction_allowed_q   <= transaction_allowed_n;
+
+        aw_request_q            <= aw_request_n;
+        ar_request_q            <= ar_request_n;
+
+        num_bytes_q             <= num_bytes_n;
+        addr_q                  <= addr_n;
+        addr_to_check_q         <= addr_to_check_n;
+        size_q                  <= size_n;
+        burst_type_q            <= burst_type_n;
+        burst_length_q          <= burst_length_n;
+        ready_reg               <= ready_i;
+    end
+end
+
 rv_iopmp_axi4_bc i_rv_iopmp_axi4_bc(
     // AxVALID
-    .request_i(aw_request | ar_request),
+    .request_i(aw_request_q | ar_request_q),
     // AxADDR
-    .addr_i(addr),
+    .addr_i(addr_q),
     // AxBURST
-    .burst_type_i(burst_type),
+    .burst_type_i(burst_type_q),
     // AxLEN
-    .burst_length_i(burst_length),
+    .burst_length_i(burst_length_q),
     // AxSIZE
-    .n_bytes_i(size),
+    .n_bytes_i(size_q),
 
     // To indicate valid requests or boundary violations
     .allow_request_o(bc_allow_request),
     .bound_violation_o(bc_bound_violation),
     .wrap_boundary_o(wrap_boundary)
 );
-
-
-// AXI request bus used to intercept AxADDR and AxVALID parameters, and connect to the demux slave port
-axi_req_nsaid_t   axi_aux_req;
-
-always_comb begin
-    axi_aux_req = slv_req_i;
-
-    // Do not perform the handshake, while the checking is ongoing
-    axi_aux_req.aw_valid = (state_reg == AXI_HANDSHAKE) ? aw_request : 0;
-    axi_aux_req.ar_valid = (state_reg == AXI_HANDSHAKE) ? ar_request : 0;
-end
-
-// State transition part of the FSM
-always_ff @(posedge clk_i or negedge rst_ni) begin
-    if (!rst_ni) begin
-        // Initialization on reset
-        state_reg <= IDLE;
-    end else begin
-        // State transition logic
-        case (state_reg)
-            IDLE:   state_reg <= (slv_req_i.aw_valid | slv_req_i.ar_valid)? MULTI_CYCLE_VER : IDLE;
-
-            MULTI_CYCLE_VER: begin
-                state_reg <= (((burst_type == axi_pkg::BURST_WRAP) & (addr_to_check == wrap_boundary)) |
-                                (counter >= burst_length)) & (detect_pulse != ready_i & !ready_i) ?
-                                    WAIT_IOPMP : ((!allow_transaction) && valid_i)? AXI_HANDSHAKE :
-                                        MULTI_CYCLE_VER;
-            end
-
-            WAIT_IOPMP: state_reg <= valid_i? AXI_HANDSHAKE: state_reg;
-
-            // Wait until the handshake has ended
-            AXI_HANDSHAKE:  state_reg <= (ar_request & !slv_req_i.ar_valid) |
-                                (aw_request & !slv_req_i.aw_valid)? IDLE: AXI_HANDSHAKE;
-
-            default: state_reg <= IDLE;
-        endcase
-    end
-end
-
-logic [8:0] counter;
-
-// Sequential part of the state machine
-always_ff @(posedge clk_i or negedge rst_ni) begin
-    if (!rst_ni) begin
-        ar_request <= 1'b0;
-        aw_request <= 1'b0;
-        transaction_allowed <= 0;
-
-        counter <= 0;
-        addr <= 0;
-        addr_to_check <= 0;
-        num_bytes <= 0;
-        size <= 0;
-        burst_type <= 0;
-        burst_length <= 0;
-    end else begin
-        // Counter increment logic
-        case (state_reg)
-            IDLE: begin
-                counter <= 0;
-                transaction_allowed <= 0;
-                detect_pulse <= ready_i;
-
-                aw_request      <= slv_req_i.aw_valid? 1'b1 : '0;
-                ar_request      <= slv_req_i.aw_valid? '0 : slv_req_i.ar_valid? 1'b1 : 0;
-
-                num_bytes       <= slv_req_i.aw_valid ? axi_pkg::num_bytes(slv_req_i.aw.size): axi_pkg::num_bytes(slv_req_i.ar.size);
-                addr            <= slv_req_i.aw_valid ? slv_req_i.aw.addr : slv_req_i.ar.addr;
-                addr_to_check   <= slv_req_i.aw_valid ? slv_req_i.aw.addr : slv_req_i.ar.addr;
-                size            <= slv_req_i.aw_valid ? slv_req_i.aw.size : slv_req_i.ar.size;
-                burst_type      <= slv_req_i.aw_valid ? slv_req_i.aw.burst: slv_req_i.ar.burst;
-                burst_length    <= slv_req_i.aw_valid ? slv_req_i.aw.len  : slv_req_i.ar.len;
-            end
-
-            MULTI_CYCLE_VER: begin
-                if (detect_pulse != ready_i) begin // Detect changes in the state, meaning iopmp has started or ended
-                    // Only on the down, as it means the iopmp has started correctly
-                    counter <= (!ready_i)? counter + 1: counter;
-                    addr_to_check <= (!ready_i)? addr_to_check + num_bytes : addr_to_check;  // Check for the last transition, no need to increment
-                end
-
-                transaction_allowed <= (valid_i)? iopmp_allow_transaction_i & bc_allow_request : transaction_allowed;
-                detect_pulse <= ready_i;
-            end
-
-            WAIT_IOPMP: transaction_allowed <= (valid_i)? iopmp_allow_transaction_i & bc_allow_request : transaction_allowed;
-
-            default: begin
-                counter             <= counter;
-                ar_request          <= ar_request;
-                aw_request          <= aw_request;
-                transaction_allowed <= transaction_allowed;
-                num_bytes           <= num_bytes;
-
-                addr_to_check       <= addr_to_check;
-                addr                <= addr;
-                size                <= size;
-                burst_type          <= burst_type;
-                burst_length        <= burst_length;
-            end
-        endcase
-    end
-end
-
-always_comb begin
-    // Prevent another from starting when an invalidation already occurred
-    transaction_en_o = (state_reg == MULTI_CYCLE_VER && counter == 0) ? 1 : 
-                        ((!allow_transaction) && valid_i)? 0: (state_reg == MULTI_CYCLE_VER)? 1 : 0;
-    addr_o           = addr_to_check;
-    num_bytes_o      = num_bytes;
-    sid_o            = (aw_request)? slv_req_i.aw.nsaid : slv_req_i.ar.nsaid;
-    access_type_o    = (aw_request)? rv_iopmp_pkg::ACCESS_WRITE : rv_iopmp_pkg::ACCESS_READ;
-end
 
 //
 // Demultiplex between authorized and unauthorized transactions
@@ -239,8 +247,8 @@ axi_demux #(
     .clk_i,
     .rst_ni,
     .test_i         (1'b0),
-    .slv_aw_select_i(transaction_allowed),
-    .slv_ar_select_i(transaction_allowed),
+    .slv_aw_select_i(transaction_allowed_q),
+    .slv_ar_select_i(transaction_allowed_q),
     .slv_req_i      (axi_aux_req),
     .slv_resp_o     (slv_rsp_o),
     .mst_reqs_o     ({mst_req_o, error_req}),  // { 1: mst, 0: error }
