@@ -3,6 +3,8 @@
 // SPDX-License-Identifier: Apache-2.0
 //
 // Register slice conforming to Comportibility guide.
+//
+// Adapted from lowRISC, it adds the W1SS and W1CS behaviour
 
 module rv_iopmp_subreg #(
   parameter int            DW       = 32  ,

@@ -3,8 +3,8 @@
 // Acknowledges:
 //
 // Description: RISC-V IOPMP Error capture.
-//              Module responsible for matching the transaction address with the stored entries,
-//              according to the configured entry rules.
+//              Module responsible for logging the received errors in the regmap. It verifies if an error can be logged or not.
+//              In the future it may server as an arbiter between multiple matching logics.
 
 
 module rv_iopmp_error_capture #(

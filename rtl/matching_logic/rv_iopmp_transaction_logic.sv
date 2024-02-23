@@ -119,8 +119,8 @@ always_comb begin
 
     case (state_q)
         IDLE: begin
-            iteration_counter_n       = 0;
-            entry_offset_n  = 0;
+            iteration_counter_n = 0;
+            entry_offset_n      = 0;
 
             // Register the input values to assure signal stability during verification
             addr_to_check_n = addr_i;

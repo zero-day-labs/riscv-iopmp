@@ -1,3 +1,10 @@
+// Author: Luís Cunha <luisccunha8@gmail.com>
+// Date: 14/02/2024
+// Acknowledges: Manuel Rodriguez
+//
+// Description: Wrapper module for the RISC-V IOPMP register programming interface.
+//              Convertes between AXI and register interface.
+
 //`define COCOTB_SIMULATION 1
 
 module rv_iopmp_cfg_abstractor_axi #(
@@ -94,7 +101,7 @@ module rv_iopmp_cfg_abstractor_axi #(
         .AXI4_USER_WIDTH    ( USER_WIDTH  ),
         .BUFF_DEPTH_SLAVE   ( 2           ),
         .APB_ADDR_WIDTH     ( 32          )
-    ) i_axi2apb_64_32_iommu (
+    ) i_axi2apb_64_32_iopmp (
         .ACLK      ( clk_i          ),
         .ARESETn   ( rst_ni         ),
         .test_en_i ( 1'b0           ),
