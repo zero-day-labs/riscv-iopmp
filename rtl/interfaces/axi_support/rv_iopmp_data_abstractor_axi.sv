@@ -1,10 +1,11 @@
-typedef enum logic [2:0] {
-    IDLE            = 3'b000,
-    SETUP           = 3'b001,
-    MULTI_CYCLE_VER = 3'b010,
-    WAIT_IOPMP      = 3'b011,
-    AXI_HANDSHAKE   = 3'b100
-} state_t;
+// Author: Luís Cunha <luisccunha8@gmail.com>
+// Date: 14/02/2024
+// Acknowledges:
+//
+// Description: RISC-V IOPMP AXI Data abstractor.
+//              Module responsible for abstracting the rest of the logic from the data bus protocol.
+//              It calculates every address the transaction passes trough and passes it to the matching logic.
+
 
 module rv_iopmp_data_abstractor_axi #(
     parameter int unsigned SID_WIDTH      = 8,
@@ -49,6 +50,14 @@ module rv_iopmp_data_abstractor_axi #(
     input  logic                                   ready_i,
     input  logic                                   valid_i
 );
+
+typedef enum logic [1:0] {
+    IDLE            = 2'b00,
+    MULTI_CYCLE_VER = 2'b01,
+    WAIT_IOPMP      = 2'b10,
+    AXI_HANDSHAKE   = 2'b11
+} state_t;
+
 
 logic enable_checking;
 logic allow_transaction;
@@ -121,7 +130,6 @@ always_comb begin
 
             iteration_counter_n     = 0;
             transaction_allowed_n   = 0;
-            //ready_reg           <= ready_i;
 
             // Registering this variables assures stability during operation
             aw_request_n    = slv_req_i.aw_valid? 1'b1 : '0;
@@ -202,6 +210,7 @@ always_ff @(posedge clk_i or negedge rst_ni) begin
     end
 end
 
+// Check for boundary breaches
 rv_iopmp_axi4_bc i_rv_iopmp_axi4_bc(
     // AxVALID
     .request_i(aw_request_q | ar_request_q),

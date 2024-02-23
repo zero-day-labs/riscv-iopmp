@@ -1,3 +1,10 @@
+// Author: Luís Cunha <luisccunha8@gmail.com>
+// Date: 14/02/2024
+// Acknowledges:
+//
+// Description: Wrapper for the IOPMP memory-mapped register interface module.
+//              It abstracts the downstream modules of the regmap data structures.
+
 `include "common_cells/assertions.svh"
 
 module rv_iopmp_regmap_wrapper #(
@@ -67,7 +74,6 @@ rv_iopmp_regmap #(
 );
 
 rv_iopmp_error_capture #(
-    // Implementation specific parameters
     .NUMBER_IOPMP_INSTANCES(NUMBER_IOPMP_INSTANCES)
 ) i_rv_iopmp_error_capture (
     .reg2hw_err_reqinfo_i  ( reg2hw.err_reqinfo  ),

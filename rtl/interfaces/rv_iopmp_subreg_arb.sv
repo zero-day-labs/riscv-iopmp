@@ -4,6 +4,8 @@
 //
 // Write enable and data arbitration logic for register slice conforming to Comportibility guide.
 
+// Adapted from lowRISC, it adds the W1SS and W1CS behaviour
+
 module rv_iopmp_subreg_arb #(
   parameter int DW       = 32  ,
   parameter     SWACCESS = "RW"  // {RW, RO, WO, W1C, W1S, W0C, RC}
