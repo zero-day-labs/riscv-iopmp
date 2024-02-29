@@ -206,5 +206,21 @@ rv_iopmp_data_abstractor_axi #(
     .valid_i(valid[0])
 );
 
+sram #(
+    .DATA_WIDTH(64),
+    .NUM_WORDS(NUMBER_ENTRIES)
+) i_rv_iopmp_sram (
+   input  logic                          .clk_i(clk_i),
+   input  logic                          .rst_ni(rst_ni),
+   input  logic                          .req_i(),
+   input  logic                          .we_i(),
+   input  logic [$clog2(NUM_WORDS)-1:0]  .addr_i(),
+   input  logic [USER_WIDTH-1:0]         .wuser_i(),
+   input  logic [DATA_WIDTH-1:0]         .wdata_i(),
+   input  logic [(DATA_WIDTH+7)/8-1:0]   .be_i(),
+   output logic [USER_WIDTH-1:0]         .ruser_o(),
+   output logic [DATA_WIDTH-1:0]         .rdata_o()
+);
+
 
 endmodule
