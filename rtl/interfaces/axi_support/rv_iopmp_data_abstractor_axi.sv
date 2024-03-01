@@ -42,6 +42,7 @@ module rv_iopmp_data_abstractor_axi #(
 
     output logic                                   transaction_en_o,
     output logic [ADDR_WIDTH - 1:0]                addr_o,
+    output logic [ADDR_WIDTH - 1:0]         total_length_o,
     output logic [$clog2(DATA_WIDTH/8) :0]         num_bytes_o,
     output logic [SID_WIDTH     - 1:0]             sid_o,
     output rv_iopmp_pkg::access_t                  access_type_o,
@@ -53,7 +54,7 @@ module rv_iopmp_data_abstractor_axi #(
 
 typedef enum logic [1:0] {
     IDLE            = 2'b00,
-    MULTI_CYCLE_VER = 2'b01,
+    VERIFICATION    = 2'b01,
     WAIT_IOPMP      = 2'b10,
     AXI_HANDSHAKE   = 2'b11
 } state_t;
@@ -69,6 +70,7 @@ logic ready_reg;
 
 // AxADDR
 logic [ADDR_WIDTH-1:0]             addr_n, addr_q;
+logic [ADDR_WIDTH - 1:0]           total_length_n, total_length_q;
 logic [ADDR_WIDTH-1:0]             addr_to_check_n, addr_to_check_q;
 logic [$clog2(DATA_WIDTH/8) :0]    num_bytes_n, num_bytes_q;
 // AxBURST
@@ -93,12 +95,13 @@ axi_req_nsaid_t   axi_aux_req;
 assign allow_transaction = iopmp_allow_transaction_i & bc_allow_request;
 
 // Prevent another from starting when an invalidation already occurred
-assign transaction_en_o = (state_q == MULTI_CYCLE_VER && iteration_counter_q == 0) ? 1 :
-                            ((!allow_transaction) && valid_i)? 0: (state_q == MULTI_CYCLE_VER)? 1 : 0;
+//assign transaction_en_o = (state_q == MULTI_CYCLE_VER && iteration_counter_q == 0) ? 1 :
+//                            ((!allow_transaction) && valid_i)? 0: (state_q == MULTI_CYCLE_VER)? 1 : 0;
 assign addr_o           = addr_to_check_q;
 assign num_bytes_o      = num_bytes_q;
 assign sid_o            = (aw_request_q)? slv_req_i.aw.nsaid : slv_req_i.ar.nsaid;
 assign access_type_o    = (aw_request_q)? rv_iopmp_pkg::ACCESS_WRITE : rv_iopmp_pkg::ACCESS_READ;
+assign total_length_o   = total_length_q;
 
 
 always_comb begin
@@ -113,6 +116,7 @@ always_comb begin
     state_n                 = state_q;
     iteration_counter_n     = iteration_counter_q;
     transaction_allowed_n   = transaction_allowed_q;
+    transaction_en_o        = 0;
 
     aw_request_n      = aw_request_q;
     ar_request_n      = ar_request_q;
@@ -126,7 +130,7 @@ always_comb begin
 
     case (state_q)
         IDLE: begin
-            state_n = (slv_req_i.aw_valid | slv_req_i.ar_valid)? MULTI_CYCLE_VER : IDLE;
+            state_n = (slv_req_i.aw_valid | slv_req_i.ar_valid)? VERIFICATION : IDLE;
 
             iteration_counter_n     = 0;
             transaction_allowed_n   = 0;
@@ -141,21 +145,13 @@ always_comb begin
             size_n            = slv_req_i.aw_valid ? slv_req_i.aw.size : slv_req_i.ar.size;
             burst_type_n      = slv_req_i.aw_valid ? slv_req_i.aw.burst: slv_req_i.ar.burst;
             burst_length_n    = slv_req_i.aw_valid ? slv_req_i.aw.len  : slv_req_i.ar.len;
+            total_length_n    = num_bytes_n * (burst_length_n + 1);
         end
 
-        MULTI_CYCLE_VER: begin
-            // If we are in burst mode, and the wrap boundary equals the addr_to_check
-            // or if we are on the last address to check, and the IOPMP has started -> WAIT_IOPMP
-            // Else, the transaction was already not accepted, proceed
-            state_n = (((burst_type_q == axi_pkg::BURST_WRAP) & (addr_to_check_q == wrap_boundary)) |
-                        (iteration_counter_q >= burst_length_q)) & (ready_reg != ready_i & !ready_i) ?
-                            WAIT_IOPMP : ((!allow_transaction) && valid_i)? AXI_HANDSHAKE :
-                                MULTI_CYCLE_VER;
-
-            // Detect a negedge of the ready, indicating IOPMP has started
-            if(ready_reg != ready_i & !ready_i) begin
-                iteration_counter_n = iteration_counter_q + 1;
-                addr_to_check_n     = addr_to_check_q + num_bytes_q;
+        VERIFICATION: begin
+            if(ready_i) begin
+                transaction_en_o = 1;
+                state_n          = WAIT_IOPMP;
             end
         end
 
@@ -192,6 +188,7 @@ always_ff @(posedge clk_i or negedge rst_ni) begin
         burst_type_q            <= 0;
         burst_length_q          <= 0;
         ready_reg               <= 0;
+        total_length_q          <= 0;
     end else begin
         state_q                 <= state_n;
         iteration_counter_q     <= iteration_counter_n;
@@ -206,6 +203,7 @@ always_ff @(posedge clk_i or negedge rst_ni) begin
         size_q                  <= size_n;
         burst_type_q            <= burst_type_n;
         burst_length_q          <= burst_length_n;
+        total_length_q          <= total_length_n;
         ready_reg               <= ready_i;
     end
 end
