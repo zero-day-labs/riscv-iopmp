@@ -14,6 +14,7 @@ module rv_iopmp_entry_analyzer #(
     parameter int unsigned DATA_WIDTH     = 64
 ) (
     input logic [ADDR_WIDTH - 1: 0]          addr_to_check_i,
+    input logic [ADDR_WIDTH - 1: 0]          final_addr_to_check_i,
     input logic [$clog2(DATA_WIDTH/8) :0]    num_bytes_i, // The requested_size width only depends on the width of the bus
     input rv_iopmp_pkg::access_t             transaction_type_i,
 
@@ -24,7 +25,9 @@ module rv_iopmp_entry_analyzer #(
     input rv_iopmp_pkg::mode_t      mode_i,
     input logic [2:0]               access_permissions_i,
 
+    output logic [ADDR_WIDTH - 1: 0] final_addr_o,
     output logic match_o,
+    output logic partial_match_o,
     output logic allow_o            // The requested transaction matches all the bytes of the entry?
 );
 
@@ -48,6 +51,7 @@ logic [$clog2(CHECK_LEN) :0] size; // Can be trail ones + 3, which needs at leas
 logic allow;
 
 assign allow_o = allow & ((transaction_type_i & access_permissions_i) == transaction_type_i);
+assign final_addr_o = final_address;
 
 // Leading zero counter - Refer to PMP enconding
 lzc #(
@@ -61,7 +65,9 @@ lzc #(
 
 always_comb begin
     match_o = 0;
+    partial_match_o = 0;
     allow = 0;
+
     base = 0;
     final_address = 0;
     mask = 0;
@@ -71,11 +77,21 @@ always_comb begin
         rv_iopmp_pkg::TOR: begin
             // check that the requested address is in between the two
             // configuration addresses
-            if (addr_to_check_i >= ({2'b0, previous_entry_addr} << 2) &&
-                    addr_to_check_i < ({2'b0, entry_addr} << 2)) begin
-                match_o = 1'b1;
-                allow = ((addr_to_check_i + num_bytes_i - 1) < ({2'b0, entry_addr} << 2))? 1'b1 : 1'b0;
-            end else match_o = 1'b0;
+            if (addr_to_check_i >= ({2'b0, previous_entry_addr} << 2) && addr_to_check_i < ({2'b0, entry_addr} << 2)) begin
+                // If every address is allowed, continue
+                if (final_addr_to_check_i >= ({2'b0, previous_entry_addr} << 2) && final_addr_to_check_i < ({2'b0, entry_addr} << 2)) begin
+                    match_o = 1'b1;
+                    allow   = 1'b1;
+                end else begin
+                    partial_match_o = 1'b1;
+                    // Check if at least this is allowed
+                    allow = ((addr_to_check_i + num_bytes_i - 1) < ({2'b0, entry_addr} << 2))? 1'b1 : 1'b0;
+                end
+            end else begin
+                match_o = 0;
+                partial_match_o = 0;
+                allow   = 0;
+            end
         end
         rv_iopmp_pkg::NA4, rv_iopmp_pkg::NAPOT: begin
             if (mode_i == rv_iopmp_pkg::NA4)
@@ -91,10 +107,22 @@ always_comb begin
             final_address = (base + (2 << (size - 1))) - 1; // Calculate final permited address for this entry
 
             // If both base addresses are equal, match
-            match_o = (addr_to_check_i & mask) == base ? 1'b1 : 1'b0;
-            // Is the final requested address smaller than the final permited address of the entry?
-            allow = (addr_to_check_i + num_bytes_i - 1 <= final_address) ? 1'b1 : 1'b0;
-
+            if((addr_to_check_i & mask) == base) begin
+                // The final address to check fits in this entry? Full match
+                if(final_addr_to_check_i <= final_address) begin
+                    match_o = 1;
+                    allow   = 1;
+                end else begin
+                    partial_match_o = 1;
+                    // Check if at least this allows
+                    allow = (addr_to_check_i + num_bytes_i - 1 <= final_address) ? 1'b1 : 1'b0;
+                end
+            end
+            else begin
+                match_o = 0;
+                partial_match_o = 0;
+                allow   = 0;
+            end
         end
         rv_iopmp_pkg::OFF: match_o = 1'b0;
         default:    match_o = 0;

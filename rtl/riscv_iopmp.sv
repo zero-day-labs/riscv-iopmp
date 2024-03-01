@@ -72,15 +72,20 @@ rv_iopmp_pkg::srcmd_entry_t [NUMBER_MASTERS - 1:0] srcmd_table;
 rv_iopmp_pkg::iopmp_entry_t [NUMBER_ENTRIES - 1:0] entry_table;
 
 // Transaction logic
-logic                                  ready[NUMBER_TL_INSTANCES];
-logic                                  valid[NUMBER_TL_INSTANCES];
-logic                         transaction_en[NUMBER_TL_INSTANCES];
-logic [ADDR_WIDTH - 1:0]                addr[NUMBER_TL_INSTANCES];
-logic [$clog2(DATA_WIDTH/8) :0]    num_bytes[NUMBER_TL_INSTANCES];
-logic [SidWidth     - 1:0]               sid[NUMBER_TL_INSTANCES];
-rv_iopmp_pkg::access_t           access_type[NUMBER_TL_INSTANCES];
+logic                                  ready;
+logic                                  valid;
+logic                         transaction_en;
+logic [ADDR_WIDTH - 1:0]                addr;
+logic [ADDR_WIDTH - 1:0]        total_length;
+logic [$clog2(DATA_WIDTH/8) :0]    num_bytes;
+logic [SidWidth     - 1:0]               sid;
+rv_iopmp_pkg::access_t           access_type;
 
-logic [NUMBER_TL_INSTANCES - 1:0]           allow_transaction_arr;
+logic                                 read_enable;
+logic [$clog2(NUMBER_ENTRIES) - 1 : 0]  read_addr;
+logic [128 - 1 : 0]                     read_data;
+
+logic                      allow_transaction;
 rv_iopmp_pkg::error_capture_t       [NUMBER_TL_INSTANCES - 1:0] err_interface;
 
 rv_iopmp_cfg_abstractor_axi #(
@@ -134,41 +139,44 @@ rv_iopmp_regmap_wrapper #(
     .wsi_wire_o(wsi_wire_o)
 );
 
-genvar i;
-generate
-    for (i = 0; i < NUMBER_TL_INSTANCES; i++) begin : gen_iopmp
-        rv_iopmp_transaction_logic #(
-            .ADDR_WIDTH(ADDR_WIDTH),
-            .SID_WIDTH (SidWidth),  // The signal which connects to the SID is the user field
-            .NUMBER_MDS(NumberMds),
-            .NUMBER_ENTRIES(NUMBER_ENTRIES),
-            .NUMBER_MASTERS(NUMBER_MASTERS),
-            .NUMBER_ENTRY_ANALYZERS(NUMBER_ENTRY_ANALYZERS)
-        ) i_rv_iopmp_transaction_logic(
-            // rising-edge clock
-            .clk_i(clk_i),
-            // asynchronous reset, active low
-            .rst_ni(rst_ni),
+rv_iopmp_matching_logic #(
+    .ADDR_WIDTH(ADDR_WIDTH),
+    .SID_WIDTH (SidWidth),  // The signal which connects to the SID is the user field
+    .NUMBER_MDS(NumberMds),
+    .NUMBER_ENTRIES(NUMBER_ENTRIES),
+    .NUMBER_MASTERS(NUMBER_MASTERS),
+    .NUMBER_ENTRY_ANALYZERS(NUMBER_ENTRY_ANALYZERS)
+) i_rv_iopmp_matching_logic (
+    // rising-edge clock
+    .clk_i(clk_i),
+    // asynchronous reset, active low
+    .rst_ni(rst_ni),
 
-            .iopmp_enabled_i(iopmp_enabled),
-            .mdcfg_table_i ( mdcfg_table ),
-            .srcmd_table_i ( srcmd_table ),
-            .entry_table_i ( entry_table ),
+    .iopmp_enabled_i(iopmp_enabled),
+    .mdcfg_table_i ( mdcfg_table ),
+    .srcmd_table_i ( srcmd_table ),
 
-            // Input
-            .transaction_en_i(transaction_en[i]),
-            .addr_i(addr[i]),
-            .num_bytes_i(num_bytes[i]),
-            .sid_i(sid[i]),
-            .access_type_i(access_type[i]),
-            .allow_transaction_o(allow_transaction_arr[i]),
-            .ready_o(ready[i]),
-            .valid_o(valid[i]),
+    // Transaction
+    .transaction_en_i(transaction_en),
+    .addr_i(addr),
+    .total_length_i(total_length),
+    .num_bytes_i(num_bytes),
+    .sid_i(sid),
+    .access_type_i(access_type),
 
-            .err_interface_o(err_interface[i])
-        );
-    end
-endgenerate
+    .allow_transaction_o(allow_transaction),
+    .ready_o(ready),
+    .valid_o(valid),
+
+    // Error interface
+    .err_interface_o(err_interface[0]),
+
+    // Entry interface
+    .read_enable_o(read_enable),
+    .read_addr_o(read_addr),
+    .read_data_i(read_data)
+);
+
 
 rv_iopmp_data_abstractor_axi #(
     .ADDR_WIDTH(ADDR_WIDTH),
@@ -195,32 +203,26 @@ rv_iopmp_data_abstractor_axi #(
     .mst_req_o(initiator_req_o),
     .mst_rsp_i(initiator_rsp_i),
 
-    .transaction_en_o(transaction_en[0]),
-    .addr_o(addr[0]),
-    .num_bytes_o(num_bytes[0]),
-    .sid_o(sid[0]),
-    .access_type_o(access_type[0]),
+    .transaction_en_o(transaction_en),
+    .addr_o(addr),
+    .total_length_o(total_length),
+    .num_bytes_o(num_bytes),
+    .sid_o(sid),
+    .access_type_o(access_type),
 
-    .iopmp_allow_transaction_i(allow_transaction_arr[0]),
-    .ready_i(ready[0]),
-    .valid_i(valid[0])
+    .iopmp_allow_transaction_i(allow_transaction),
+    .ready_i(ready),
+    .valid_i(valid)
 );
 
-sram #(
-    .DATA_WIDTH(64),
-    .NUM_WORDS(NUMBER_ENTRIES)
-) i_rv_iopmp_sram (
-   input  logic                          .clk_i(clk_i),
-   input  logic                          .rst_ni(rst_ni),
-   input  logic                          .req_i(),
-   input  logic                          .we_i(),
-   input  logic [$clog2(NUM_WORDS)-1:0]  .addr_i(),
-   input  logic [USER_WIDTH-1:0]         .wuser_i(),
-   input  logic [DATA_WIDTH-1:0]         .wdata_i(),
-   input  logic [(DATA_WIDTH+7)/8-1:0]   .be_i(),
-   output logic [USER_WIDTH-1:0]         .ruser_o(),
-   output logic [DATA_WIDTH-1:0]         .rdata_o()
-);
+ram i_ram(
+    .clk(clk_i),
+    .ena(read_enable),
+    .raddr(read_addr),
 
+    .entry_table_i(entry_table),
+
+    .dout(read_data)
+);
 
 endmodule
