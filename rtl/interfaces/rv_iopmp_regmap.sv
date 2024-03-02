@@ -38,7 +38,19 @@ module rv_iopmp_regmap #(
   output rv_iopmp_pkg::iopmp_entry_t [NUMBER_ENTRIES - 1:0] entry_table_o,
 
   // Config
-  input devmode_i // If 1, explicit error return for unmapped register access
+  input devmode_i, // If 1, explicit error return for unmapped register access
+
+  // Entry Config
+  output logic bram_we_o,
+  output logic bram_en_o,
+  output logic [$clog2(NUMBER_ENTRIES)  * 4 - 1:0] bram_addr_o,
+  output logic [32 - 1 : 0]  bram_din_o,
+
+  input logic [32 - 1 : 0] bram_dout_i,
+
+  // Control dwidth_converter
+  input logic bram_ready_i,
+  input logic bram_valid_i
 );
 
   localparam int DW = 32;
@@ -83,7 +95,7 @@ module rv_iopmp_regmap #(
   assign reg_be = reg_intf_req.wstrb;
   assign reg_intf_rsp.rdata = reg_rdata;
   assign reg_intf_rsp.error = reg_error;
-  assign reg_intf_rsp.ready = 1'b1;
+  assign reg_intf_rsp.ready = bram_ready_i;
 
   assign reg_rdata = reg_rdata_next ;
   assign reg_error = (devmode_i & addrmiss) | wr_err;
@@ -1433,25 +1445,90 @@ module rv_iopmp_regmap #(
   //endgenerate
 
   //generate gen_entries_write_signals
-  for(genvar i = 0; i < NUMBER_ENTRIES; i++) begin 
-    assign entry_addr_we[i] = reg2hw.entrylck.f.q > 0? 0 : addr_hit[ADDR_HIT_ENTRY_ADDR_OFFSET + i] & reg_we & !reg_error;
-    assign entry_addr_wd[i] = reg_wdata[31:0];
 
-    assign entry_addrh_we[i] = reg2hw.entrylck.f.q > 0? 0 : addr_hit[ADDR_HIT_ENTRY_ADDRH_OFFSET + i] & reg_we & !reg_error;
-    assign entry_addrh_wd[i] = reg_wdata[31:0];
+  always_comb begin
+    bram_we_o = 0;
+    bram_en_o = 0;
+    bram_din_o = '0;
 
-    assign entry_cfg_r_we[i] = reg2hw.entrylck.f.q > 0? 0 : addr_hit[ADDR_HIT_ENTRY_CFG_OFFSET + i] & reg_we & !reg_error;
-    assign entry_cfg_r_wd[i] = reg_wdata[0];
+    if(reg_we & !reg_error) begin
+      unique case (1'b1)
+        (entry_addr_hit_vector): begin
+          // Enable writing
+          bram_we_o = 1;
+          bram_en_o = 1;
 
-    assign entry_cfg_w_we[i] = reg2hw.entrylck.f.q > 0? 0 :addr_hit[ADDR_HIT_ENTRY_CFG_OFFSET + i] & reg_we & !reg_error;
-    assign entry_cfg_w_wd[i] = reg_wdata[1];
+          for(integer i = 0; i < NUMBER_ENTRIES; i++) begin
+            if (addr_hit[ADDR_HIT_ENTRY_ADDR_OFFSET + i] & ((reg2hw.entrylck.f.q < i) | 
+                (reg2hw.entrylck.f.q == 0))) begin
 
-    assign entry_cfg_x_we[i] = reg2hw.entrylck.f.q > 0? 0 :addr_hit[ADDR_HIT_ENTRY_CFG_OFFSET + i] & reg_we & !reg_error;
-    assign entry_cfg_x_wd[i] = reg_wdata[2];
+              bram_din_o[31:0] = reg_wdata[31:0];
+              bram_addr_o = i << 2;
+            end
+          end
+        end
 
-    assign entry_cfg_a_we[i] = reg2hw.entrylck.f.q > 0? 0 :addr_hit[ADDR_HIT_ENTRY_CFG_OFFSET + i] & reg_we & !reg_error;
-    assign entry_cfg_a_wd[i] = reg_wdata[4:3];
+        (entry_addrh_hit_vector): begin
+          // Enable writing
+          bram_we_o = 1;
+          bram_en_o = 1;
+
+          for(integer i = 0; i < NUMBER_ENTRIES; i++) begin
+            if (addr_hit[ADDR_HIT_ENTRY_ADDRH_OFFSET + i] & ((reg2hw.entrylck.f.q < i) | 
+                (reg2hw.entrylck.f.q == 0))) begin
+              bram_din_o[31:0] = reg_wdata[31:0];
+              bram_addr_o = (i << 2) + 1;
+            end
+          end
+        end
+
+        (entry_cfg_hit_vector): begin
+          // Enable writing
+          bram_we_o = 1;
+          bram_en_o = 1;
+
+          for(integer i = 0; i < NUMBER_ENTRIES; i++) begin
+            if (addr_hit[ADDR_HIT_ENTRY_CFG_OFFSET + i] & ((reg2hw.entrylck.f.q < i) | 
+                (reg2hw.entrylck.f.q == 0))) begin
+
+              bram_din_o[0] = reg_wdata[0];
+              bram_din_o[1] = reg_wdata[1];
+              bram_din_o[2] = reg_wdata[2];
+              bram_din_o[4:3] = reg_wdata[4:3];
+
+              bram_addr_o = (i << 2) + 2;
+            end
+          end
+        end
+      default: ;
+      endcase
+    end
   end
+
+  // for(genvar i = 0; i < NUMBER_ENTRIES; i++) begin 
+  //   output bram_we_o,
+  //   output bram_en_o,
+  //   output [ADDR_WIDTH-1:0] bram_addr_o,
+  //   output logic [DATA_WIDTH - 1 : 0]  bram_din_o,
+
+  //   assign entry_addr_we[i] = reg2hw.entrylck.f.q > 0? 0 : addr_hit[ADDR_HIT_ENTRY_ADDR_OFFSET + i] & reg_we & !reg_error;
+  //   assign entry_addr_wd[i] = reg_wdata[31:0];
+
+  //   assign entry_addrh_we[i] = reg2hw.entrylck.f.q > 0? 0 : addr_hit[ADDR_HIT_ENTRY_ADDRH_OFFSET + i] & reg_we & !reg_error;
+  //   assign entry_addrh_wd[i] = reg_wdata[31:0];
+
+  //   assign entry_cfg_r_we[i] = reg2hw.entrylck.f.q > 0? 0 : addr_hit[ADDR_HIT_ENTRY_CFG_OFFSET + i] & reg_we & !reg_error;
+  //   assign entry_cfg_r_wd[i] = reg_wdata[0];
+
+  //   assign entry_cfg_w_we[i] = reg2hw.entrylck.f.q > 0? 0 :addr_hit[ADDR_HIT_ENTRY_CFG_OFFSET + i] & reg_we & !reg_error;
+  //   assign entry_cfg_w_wd[i] = reg_wdata[1];
+
+  //   assign entry_cfg_x_we[i] = reg2hw.entrylck.f.q > 0? 0 :addr_hit[ADDR_HIT_ENTRY_CFG_OFFSET + i] & reg_we & !reg_error;
+  //   assign entry_cfg_x_wd[i] = reg_wdata[2];
+
+  //   assign entry_cfg_a_we[i] = reg2hw.entrylck.f.q > 0? 0 :addr_hit[ADDR_HIT_ENTRY_CFG_OFFSET + i] & reg_we & !reg_error;
+  //   assign entry_cfg_a_wd[i] = reg_wdata[4:3];
+  // end
   //endgenerate
 
   logic   mdcfg_hit_vector;

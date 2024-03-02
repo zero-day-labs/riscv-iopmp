@@ -47,7 +47,10 @@ module rv_iopmp_matching_logic #(
     // Entry interface
     output logic                                read_enable_o,
     output logic [$clog2(NUMBER_ENTRIES) - 1 : 0] read_addr_o,
-    input  logic [128 - 1 : 0]                    read_data_i
+    input  logic [128 - 1 : 0]                    read_data_i,
+
+    // Stall capabilities
+    input logic stall_i
 );
 
 // TL States
@@ -125,88 +128,67 @@ always_comb begin
     allow_transaction_o     = 0;
     valid_o                 = 0;
 
-    case (state_q)
-        IDLE: begin
-            // Register the input values to assure signal stability during verification
-            addr_to_check_n       = addr_i;
-            final_addr_to_check_n = addr_i + total_length_i - 1;
-            num_bytes_n           = num_bytes_i;
-            sid_n                 = sid_i;
-            access_type_n         = access_type_i;
+    if(!stall_i) begin
+        case (state_q)
+            IDLE: begin
+                // Register the input values to assure signal stability during verification
+                addr_to_check_n       = addr_i;
+                final_addr_to_check_n = addr_i + total_length_i - 1;
+                num_bytes_n           = num_bytes_i;
+                sid_n                 = sid_i;
+                access_type_n         = access_type_i;
 
-            if(transaction_en_i) begin
-                if(!iopmp_enabled_i) begin    // IOPMP Not enabled, reject
-                    state_n     = ERROR;
-                    err_type_n  = 0;
-                end
-                else if (sid_i > NUMBER_MASTERS) begin
-                    err_type_n  = 3'h6;
-                    state_n     = ERROR;
-                end else
-                    state_n     = SETUP;
-
-                first_iteration_n = 1;
-            end
-        end
-
-        SETUP: begin
-            if(has_md_q & mdcfg_table_i[initial_md_q] != 0) begin
-                if(initial_md_q == 0)
-                    current_entry_n = 0;
-                else
-                    current_entry_n = mdcfg_table_i[initial_md_q - 1];
-
-                state_n  = NORMAL_OP;
-            end
-            else begin // MD enabled, but poorly configured
-                state_n = ERROR;
-                err_type_n = 3'h5;
-            end
-
-            reset_md = 1;
-        end
-
-        NORMAL_OP: begin
-            cached_entry_n = read_data_i;
-            // Current entry is TOR? Or Did we come back from TOR_OP? Or recently changed MD or is the first time we are here? Not cached entry
-            if(entry_cfg[4:3] == 2'h1 & !tor_override_q & ((first_iteration_q & current_md_q != 0) | new_md_q )) begin
-                current_entry_n = current_entry_q - 1;
-                state_n         = TOR_OP;
-            end
-            else begin
-                // we are on the first entry, previous entry_addr = 0
-                if(current_entry_q == 0)
-                    previous_entry_addr = 0;
-                else
-                    previous_entry_addr = cached_entry_q[63:0];
-
-                // Decision taking
-                if(entry_match) begin  // We have a full match with the current entry
-                    if(entry_allow) begin
-                        state_n = VALID;
-                    end else begin
-                        state_n = ERROR;
-
-                        // Error type
-                        case(access_type_q)
-                            rv_iopmp_pkg::ACCESS_READ, rv_iopmp_pkg::ACCESS_WRITE:
-                                err_type_n = access_type_q;
-                            rv_iopmp_pkg::ACCESS_EXECUTION:
-                                err_type_n = 3'h3;
-                            default:
-                                err_type_n = 3'h7; // Use some kind of error
-                        endcase
+                if(transaction_en_i) begin
+                    if(!iopmp_enabled_i) begin    // IOPMP Not enabled, reject
+                        state_n     = ERROR;
+                        err_type_n  = 0;
                     end
+                    else if (sid_i > NUMBER_MASTERS) begin
+                        err_type_n  = 3'h6;
+                        state_n     = ERROR;
+                    end else
+                        state_n     = SETUP;
+
+                    first_iteration_n = 1;
+                end
+            end
+
+            SETUP: begin
+                if(has_md_q & mdcfg_table_i[initial_md_q] != 0) begin
+                    if(initial_md_q == 0)
+                        current_entry_n = 0;
+                    else
+                        current_entry_n = mdcfg_table_i[initial_md_q - 1];
+
+                    state_n  = NORMAL_OP;
+                end
+                else begin // MD enabled, but poorly configured
+                    state_n = ERROR;
+                    err_type_n = 3'h5;
+                end
+
+                reset_md = 1;
+            end
+
+            NORMAL_OP: begin
+                cached_entry_n = read_data_i;
+                // Current entry is TOR? Or Did we come back from TOR_OP? Or recently changed MD or is the first time we are here? Not cached entry
+                if(entry_cfg[4:3] == 2'h1 & !tor_override_q & ((first_iteration_q & current_md_q != 0) | new_md_q )) begin
+                    current_entry_n = current_entry_q - 1;
+                    state_n         = TOR_OP;
                 end
                 else begin
-                    // We hit a partial match, just restart with the new base address, equal to the final address the entry allows
-                    if(partial_entry_match) begin
-                        // If what was partially matched is allowed
+                    // we are on the first entry, previous entry_addr = 0
+                    if(current_entry_q == 0)
+                        previous_entry_addr = 0;
+                    else
+                        previous_entry_addr = cached_entry_q[63:0];
+
+                    // Decision taking
+                    if(entry_match) begin  // We have a full match with the current entry
                         if(entry_allow) begin
-                            state_n = SETUP;
-                            addr_to_check_n = entry_final_addr;
-                        end
-                        else begin
+                            state_n = VALID;
+                        end else begin
                             state_n = ERROR;
 
                             // Error type
@@ -221,50 +203,73 @@ always_comb begin
                         end
                     end
                     else begin
-                        // Entry address calculation
-                        if(current_entry_q == mdcfg_table_i[current_md_q] - 1) begin // Check if it is necessary to change MD
-                            if(last_md) begin
-                                state_n = ERROR;
-                                err_type_n = 3'h5;
+                        // We hit a partial match, just restart with the new base address, equal to the final address the entry allows
+                        if(partial_entry_match) begin
+                            // If what was partially matched is allowed
+                            if(entry_allow) begin
+                                state_n = SETUP;
+                                addr_to_check_n = entry_final_addr;
                             end
                             else begin
-                                current_entry_n = mdcfg_table_i[next_md_q - 1];          // Use next_md value directly so we do not stop
-                                get_next_md     = 1;
-                                new_md_n        = 1;
+                                state_n = ERROR;
+
+                                // Error type
+                                case(access_type_q)
+                                    rv_iopmp_pkg::ACCESS_READ, rv_iopmp_pkg::ACCESS_WRITE:
+                                        err_type_n = access_type_q;
+                                    rv_iopmp_pkg::ACCESS_EXECUTION:
+                                        err_type_n = 3'h3;
+                                    default:
+                                        err_type_n = 3'h7; // Use some kind of error
+                                endcase
                             end
                         end
-                        else if(current_entry_q == NUMBER_ENTRIES - 1) begin // Are we on the last entry? Prevents locking up
-                            state_n = ERROR;
-                            err_type_n = 3'h5;
-                        end else
-                            current_entry_n = current_entry_q + 1;
+                        else begin
+                            // Entry address calculation
+                            if(current_entry_q == mdcfg_table_i[current_md_q] - 1) begin // Check if it is necessary to change MD
+                                if(last_md) begin
+                                    state_n = ERROR;
+                                    err_type_n = 3'h5;
+                                end
+                                else begin
+                                    current_entry_n = mdcfg_table_i[next_md_q - 1];          // Use next_md value directly so we do not stop
+                                    get_next_md     = 1;
+                                    new_md_n        = 1;
+                                end
+                            end
+                            else if(current_entry_q == NUMBER_ENTRIES - 1) begin // Are we on the last entry? Prevents locking up
+                                state_n = ERROR;
+                                err_type_n = 3'h5;
+                            end else
+                                current_entry_n = current_entry_q + 1;
+                        end
                     end
                 end
             end
-        end
 
-        TOR_OP: begin
-            cached_entry_n  = read_data_i; // Cache the previous entry
-            current_entry_n = current_entry_q + 1; // Get back to the correct entry on next cycle
-            tor_override_n  = 1;
-            state_n         = NORMAL_OP;
-        end
+            TOR_OP: begin
+                cached_entry_n  = read_data_i; // Cache the previous entry
+                current_entry_n = current_entry_q + 1; // Get back to the correct entry on next cycle
+                tor_override_n  = 1;
+                state_n         = NORMAL_OP;
+            end
 
-        VALID: begin
-            valid_o = 1;
-            allow_transaction_o = 1;
-            state_n = IDLE;
-        end
+            VALID: begin
+                valid_o = 1;
+                allow_transaction_o = 1;
+                state_n = IDLE;
+            end
 
-        ERROR: begin
-            err_transaction = (err_type_q != 0)? 1 : 0;
-            valid_o = 1;
-            allow_transaction_o = 0;
-            state_n = IDLE;
-        end
+            ERROR: begin
+                err_transaction = (err_type_q != 0)? 1 : 0;
+                valid_o = 1;
+                allow_transaction_o = 0;
+                state_n = IDLE;
+            end
 
-        default:;
-    endcase
+            default:;
+        endcase
+    end
 end
 
 // Sequential process
