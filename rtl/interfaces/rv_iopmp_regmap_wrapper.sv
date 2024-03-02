@@ -32,7 +32,15 @@ module rv_iopmp_regmap_wrapper #(
 
     output logic wsi_wire_o,
     // Config
-    input devmode_i // If 1, explicit error return for unmapped register access
+    input devmode_i, // If 1, explicit error return for unmapped register access
+
+    // BRAM
+    output logic we_bram_o,
+    output logic en_bram_o,
+    output logic [$clog2(NUMBER_ENTRIES) - 1  :0] addr_bram_o,
+    output logic [128 - 1 : 0] din_bram_o,
+
+    input  logic [128 - 1 : 0] dout_bram_i
 );
 
 // Device configuration and status registers
@@ -46,6 +54,16 @@ reg_rsp_t cfg_rsp_mod;
 
 assign cfg_req_mod = cfg_reg_req_i;
 assign cfg_reg_rsp_o = cfg_rsp_mod;
+
+// BRAM
+logic                                       bram_we;
+logic                                       bram_en;
+logic [$clog2(NUMBER_ENTRIES)  * 4 - 1:0] bram_addr;
+logic [32 - 1 : 0]                         bram_din;
+logic                                    bram_ready;
+logic [32 - 1 : 0]                        bram_dout;
+logic                                    bram_valid;
+
 
 // Register interface instantiation
 rv_iopmp_regmap #(
@@ -70,7 +88,48 @@ rv_iopmp_regmap #(
 
     // from registers to hardware
     .hw2reg   (hw2reg),
-    .reg2hw   (reg2hw)
+    .reg2hw   (reg2hw),
+
+    // Entry Config
+    .bram_we_o(bram_we),
+    .bram_en_o(bram_en),
+    .bram_addr_o(bram_addr),
+    .bram_din_o(bram_din),
+
+    .bram_dout_i(bram_dout),
+
+    // Control dwidth_converter
+    .bram_ready_i(bram_ready),
+    .bram_valid_i(bram_valid)
+);
+
+dwidth_converter_bram #(
+    .BRAM_DWIDTH(128),
+    .OUT_WIDTH(32),
+
+    .DEPTH(NUMBER_ENTRIES)
+) i_dwidth_converter_bram (
+    .clk_i(clk_i),
+    .rst_ni(rst_ni),
+
+    .we_i(bram_we),
+    .we_bram_o(we_bram_o),
+
+    .en_i(bram_en),
+    .en_bram_o(en_bram_o),
+
+    .addr_i(bram_addr),
+    .addr_bram_o(addr_bram_o),
+
+    .din_i(bram_din),
+    .din_bram_o(din_bram_o),
+
+    .dout_o(bram_dout),
+    .dout_bram_i(dout_bram_i),
+
+    // Info
+    .valid_o(bram_valid),
+    .ready_o(bram_ready)
 );
 
 rv_iopmp_error_capture #(

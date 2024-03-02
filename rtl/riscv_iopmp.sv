@@ -88,6 +88,12 @@ logic [128 - 1 : 0]                     read_data;
 logic                      allow_transaction;
 rv_iopmp_pkg::error_capture_t       [NUMBER_TL_INSTANCES - 1:0] err_interface;
 
+logic                                    regmapw_we;
+logic                                    regmapw_en;
+logic [$clog2(NUMBER_ENTRIES) - 1  :0] regmapw_addr;
+logic [128 - 1 : 0]                     regmapw_din;
+logic [128 - 1 : 0]                    regmapw_dout;
+
 rv_iopmp_cfg_abstractor_axi #(
     .DATA_WIDTH(DATA_WIDTH),
     .ADDR_WIDTH(ADDR_WIDTH),
@@ -136,7 +142,15 @@ rv_iopmp_regmap_wrapper #(
     .srcmd_table_o ( srcmd_table ),
     .entry_table_o ( entry_table ),
 
-    .wsi_wire_o(wsi_wire_o)
+    .wsi_wire_o(wsi_wire_o),
+
+    // BRAM
+    .we_bram_o(regmapw_we),
+    .en_bram_o(regmapw_en),
+    .addr_bram_o(regmapw_addr),
+    .din_bram_o(regmapw_din),
+
+    .dout_bram_i(regmapw_dout)
 );
 
 rv_iopmp_matching_logic #(
@@ -174,7 +188,33 @@ rv_iopmp_matching_logic #(
     // Entry interface
     .read_enable_o(read_enable),
     .read_addr_o(read_addr),
-    .read_data_i(read_data)
+    .read_data_i(read_data),
+
+    .stall_i(regmapw_we) // When the entries are being changed, stall the matching logic
+);
+
+// porta -> regmap_wrapper
+// portb -> matching_logic
+rams_tdp_struct #(
+    .DEPTH(NUMBER_ENTRIES)
+) i_entry_ram (
+    .clka_i(clk_i),
+    .clkb_i(clk_i),
+
+    .wea_i(regmapw_we),
+    .web_i(0),
+
+    .ena_i(regmapw_en),
+    .enb_i(read_enable),
+
+    .addra_i(regmapw_addr),
+    .addrb_i(read_addr),
+
+    .dina_i(regmapw_din),
+    .dinb_i(0),
+
+    .douta_o(regmapw_dout),
+    .doutb_o(read_data)
 );
 
 
@@ -213,16 +253,6 @@ rv_iopmp_data_abstractor_axi #(
     .iopmp_allow_transaction_i(allow_transaction),
     .ready_i(ready),
     .valid_i(valid)
-);
-
-ram i_ram(
-    .clk(clk_i),
-    .ena(read_enable),
-    .raddr(read_addr),
-
-    .entry_table_i(entry_table),
-
-    .dout(read_data)
 );
 
 endmodule
