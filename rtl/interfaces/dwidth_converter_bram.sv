@@ -84,17 +84,20 @@ always_comb begin
         we_bram_o = 1;
         ready_o   = 0;
     end else if(read_snd_stage_en_q) begin
-        dout_o  = dout_bram_i >> (shift_qtty_q << $clog2(OUT_WIDTH));
+        // Verilatr does not like making the expression into one so
+        actual_shift_qtty = (shift_qtty_q << $clog2(OUT_WIDTH));
+
+        dout_o  = dout_bram_i >> actual_shift_qtty;
         valid_o = 1;
         ready_o = 0;
     end else if(en_i) begin
         en_bram_o = 1; // Enable a read from the BRAM
 
-        if(we_i) begin
-            // Get correct BRAM address
-            addr_bram_o = addr_i >> ShiftAmount;
-            shift_qtty_n  = addr_i[(BitWidthShift - 1) :0];
+        // Get correct BRAM address
+        addr_bram_o = addr_i >> ShiftAmount;
+        shift_qtty_n  = addr_i[(BitWidthShift - 1) :0];
 
+        if(we_i) begin
             pipeline_addr_n = addr_bram_o;
             pipeline_data_n = din_i;
             write_snd_stage_en_n = 1;

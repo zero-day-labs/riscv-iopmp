@@ -248,7 +248,7 @@ always_comb begin
             end
 
             TOR_OP: begin
-                cached_entry_n  = read_data_i; // Cache the previous entry
+                cached_entry_n  = read_data_i; // Cache the previous entry, which is the current one
                 current_entry_n = current_entry_q + 1; // Get back to the correct entry on next cycle
                 tor_override_n  = 1;
                 state_n         = NORMAL_OP;

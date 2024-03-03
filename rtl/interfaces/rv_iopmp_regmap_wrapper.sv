@@ -28,7 +28,7 @@ module rv_iopmp_regmap_wrapper #(
     output logic iopmp_enabled_o,
     output rv_iopmp_pkg::mdcfg_entry_t [NUMBER_MDS     - 1:0] mdcfg_table_o,
     output rv_iopmp_pkg::srcmd_entry_t [NUMBER_MASTERS - 1:0] srcmd_table_o,
-    output rv_iopmp_pkg::iopmp_entry_t [NUMBER_ENTRIES - 1:0] entry_table_o,
+    //output rv_iopmp_pkg::iopmp_entry_t [NUMBER_ENTRIES - 1:0] entry_table_o,
 
     output logic wsi_wire_o,
     // Config
@@ -84,7 +84,7 @@ rv_iopmp_regmap #(
 
     .mdcfg_table_o(mdcfg_table_o),
     .srcmd_table_o(srcmd_table_o),
-    .entry_table_o(entry_table_o),
+    //.entry_table_o(entry_table_o),
 
     // from registers to hardware
     .hw2reg   (hw2reg),
