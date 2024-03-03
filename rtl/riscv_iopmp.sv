@@ -60,7 +60,7 @@ module riscv_iopmp #(
     output logic  wsi_wire_o
 );
 
-localparam int unsigned NumberMds = (NUMBER_MASTERS == 1) ? 1 : NUMBER_MDS;
+localparam int unsigned NumberMds = NUMBER_MDS;
 localparam int unsigned SidWidth  = (NUMBER_MASTERS == 1) ? 1 : $clog2(NUMBER_MASTERS);
 
 reg_req_t cfg_reg_req;
@@ -69,7 +69,7 @@ reg_rsp_t cfg_reg_rsp;
 logic iopmp_enabled;
 rv_iopmp_pkg::mdcfg_entry_t [NumberMds - 1:0]      mdcfg_table;
 rv_iopmp_pkg::srcmd_entry_t [NUMBER_MASTERS - 1:0] srcmd_table;
-rv_iopmp_pkg::iopmp_entry_t [NUMBER_ENTRIES - 1:0] entry_table;
+//rv_iopmp_pkg::iopmp_entry_t [NUMBER_ENTRIES - 1:0] entry_table;
 
 // Transaction logic
 logic                                  ready;
@@ -140,7 +140,7 @@ rv_iopmp_regmap_wrapper #(
     .iopmp_enabled_o(iopmp_enabled),
     .mdcfg_table_o ( mdcfg_table ),
     .srcmd_table_o ( srcmd_table ),
-    .entry_table_o ( entry_table ),
+    //.entry_table_o ( entry_table ),
 
     .wsi_wire_o(wsi_wire_o),
 

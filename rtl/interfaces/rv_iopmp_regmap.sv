@@ -35,7 +35,7 @@ module rv_iopmp_regmap #(
 
   output rv_iopmp_pkg::mdcfg_entry_t [NUMBER_MDS - 1    :0] mdcfg_table_o,
   output rv_iopmp_pkg::srcmd_entry_t [NUMBER_MASTERS - 1:0] srcmd_table_o,
-  output rv_iopmp_pkg::iopmp_entry_t [NUMBER_ENTRIES - 1:0] entry_table_o,
+  //output rv_iopmp_pkg::iopmp_entry_t [NUMBER_ENTRIES - 1:0] entry_table_o,
 
   // Config
   input devmode_i, // If 1, explicit error return for unmapped register access
@@ -83,6 +83,7 @@ module rv_iopmp_regmap #(
   reg_req_t  reg_intf_req;
   reg_rsp_t  reg_intf_rsp;
 
+  logic read_from_bram;
 
   assign reg_intf_req = reg_req_i;
   assign reg_rsp_o = reg_intf_rsp;
@@ -95,7 +96,10 @@ module rv_iopmp_regmap #(
   assign reg_be = reg_intf_req.wstrb;
   assign reg_intf_rsp.rdata = reg_rdata;
   assign reg_intf_rsp.error = reg_error;
-  assign reg_intf_rsp.ready = bram_ready_i;
+
+  // Are we reading from BRAM? Connect to valid, are we writing? Connect to ready
+  // No problem here, because ready is always at one, only comes to 0 when we write to the BRAM
+  assign reg_intf_rsp.ready = read_from_bram? bram_valid_i : bram_ready_i;
 
   assign reg_rdata = reg_rdata_next ;
   assign reg_error = (devmode_i & addrmiss) | wr_err;
@@ -182,11 +186,11 @@ module rv_iopmp_regmap #(
   // Actual tables
   rv_iopmp_pkg::mdcfg_entry_t [NUMBER_MDS     - 1: 0] mdcfg_table;
   rv_iopmp_pkg::srcmd_entry_t [NUMBER_MASTERS - 1: 0] srcmd_table;
-  rv_iopmp_pkg::iopmp_entry_t [NUMBER_ENTRIES - 1: 0] entry_table;
+  //rv_iopmp_pkg::iopmp_entry_t [NUMBER_ENTRIES - 1: 0] entry_table;
 
   assign mdcfg_table_o = mdcfg_table;
   assign srcmd_table_o = srcmd_table;
-  assign entry_table_o = entry_table;
+  //assign entry_table_o = entry_table;
 
 // mdcfg signals
   logic [15:0] mdcfg_t_qs [NUMBER_MDS];
@@ -207,29 +211,29 @@ module rv_iopmp_regmap #(
   logic srcmd_enh_we         [NUMBER_MDS];
 
 // Entry signals
-  logic [31:0] entry_addr_qs [NUMBER_ENTRIES];
-  logic [31:0] entry_addr_wd [NUMBER_ENTRIES];
-  logic entry_addr_we        [NUMBER_ENTRIES];
+  // logic [31:0] entry_addr_qs [NUMBER_ENTRIES];
+  // logic [31:0] entry_addr_wd [NUMBER_ENTRIES];
+  // logic entry_addr_we        [NUMBER_ENTRIES];
 
-  logic [31:0] entry_addrh_qs [NUMBER_ENTRIES];
-  logic [31:0] entry_addrh_wd [NUMBER_ENTRIES];
-  logic entry_addrh_we        [NUMBER_ENTRIES];
+  // logic [31:0] entry_addrh_qs [NUMBER_ENTRIES];
+  // logic [31:0] entry_addrh_wd [NUMBER_ENTRIES];
+  // logic entry_addrh_we        [NUMBER_ENTRIES];
 
-  logic entry_cfg_r_qs  [NUMBER_ENTRIES];
-  logic entry_cfg_r_wd  [NUMBER_ENTRIES];
-  logic entry_cfg_r_we  [NUMBER_ENTRIES];
+  // logic entry_cfg_r_qs  [NUMBER_ENTRIES];
+  // logic entry_cfg_r_wd  [NUMBER_ENTRIES];
+  // logic entry_cfg_r_we  [NUMBER_ENTRIES];
 
-  logic entry_cfg_w_qs  [NUMBER_ENTRIES];
-  logic entry_cfg_w_wd  [NUMBER_ENTRIES];
-  logic entry_cfg_w_we  [NUMBER_ENTRIES];
+  // logic entry_cfg_w_qs  [NUMBER_ENTRIES];
+  // logic entry_cfg_w_wd  [NUMBER_ENTRIES];
+  // logic entry_cfg_w_we  [NUMBER_ENTRIES];
 
-  logic entry_cfg_x_qs  [NUMBER_ENTRIES];
-  logic entry_cfg_x_wd  [NUMBER_ENTRIES];
-  logic entry_cfg_x_we  [NUMBER_ENTRIES];
+  // logic entry_cfg_x_qs  [NUMBER_ENTRIES];
+  // logic entry_cfg_x_wd  [NUMBER_ENTRIES];
+  // logic entry_cfg_x_we  [NUMBER_ENTRIES];
 
-  logic [1:0] entry_cfg_a_qs[NUMBER_ENTRIES];
-  logic [1:0] entry_cfg_a_wd[NUMBER_ENTRIES];
-  logic entry_cfg_a_we      [NUMBER_ENTRIES];
+  // logic [1:0] entry_cfg_a_qs[NUMBER_ENTRIES];
+  // logic [1:0] entry_cfg_a_wd[NUMBER_ENTRIES];
+  // logic entry_cfg_a_we      [NUMBER_ENTRIES];
 // --------------------------------
 
   // Register instances
@@ -1125,165 +1129,165 @@ module rv_iopmp_regmap #(
   end
   //endgenerate
 
-  //generate gen_entries
-  for(genvar i = 0; i < NUMBER_ENTRIES; i++) begin
-      // R[entry_addr0]: V(False)
-    rv_iopmp_subreg #(
-      .DW      (32),
-      .SWACCESS("RW"),
-      .RESVAL  (32'h0)
-    ) u_entry_addr (
-      .clk_i   (clk_i   ),
-      .rst_ni  (rst_ni  ),
+  // //generate gen_entries
+  // for(genvar i = 0; i < NUMBER_ENTRIES; i++) begin
+  //     // R[entry_addr0]: V(False)
+  //   rv_iopmp_subreg #(
+  //     .DW      (32),
+  //     .SWACCESS("RW"),
+  //     .RESVAL  (32'h0)
+  //   ) u_entry_addr (
+  //     .clk_i   (clk_i   ),
+  //     .rst_ni  (rst_ni  ),
 
-      // from register interface
-      .we     (entry_addr_we[i]),
-      .wd     (entry_addr_wd[i]),
+  //     // from register interface
+  //     .we     (entry_addr_we[i]),
+  //     .wd     (entry_addr_wd[i]),
 
-      // from internal hardware
-      .de     (1'b0),
-      .d      ('0  ),
+  //     // from internal hardware
+  //     .de     (1'b0),
+  //     .d      ('0  ),
 
-      // to internal hardware
-      .qe     (),
-      .q      (entry_table[i].addr.q),
+  //     // to internal hardware
+  //     .qe     (),
+  //     .q      (entry_table[i].addr.q),
 
-      // to register interface (read)
-      .qs     (entry_addr_qs[i])
-    );
+  //     // to register interface (read)
+  //     .qs     (entry_addr_qs[i])
+  //   );
 
-    // R[entry_addrh]: V(False)
+  //   // R[entry_addrh]: V(False)
 
-    rv_iopmp_subreg #(
-      .DW      (32),
-      .SWACCESS("RW"),
-      .RESVAL  (32'h0)
-    ) u_entry_addrh (
-      .clk_i   (clk_i   ),
-      .rst_ni  (rst_ni  ),
+  //   rv_iopmp_subreg #(
+  //     .DW      (32),
+  //     .SWACCESS("RW"),
+  //     .RESVAL  (32'h0)
+  //   ) u_entry_addrh (
+  //     .clk_i   (clk_i   ),
+  //     .rst_ni  (rst_ni  ),
 
-      // from register interface
-      .we     (entry_addrh_we[i]),//(reg2hw.entrylck.f.q > 0? 0 : entry_addrh0_we),
-      .wd     (entry_addrh_wd[i]),
+  //     // from register interface
+  //     .we     (entry_addrh_we[i]),//(reg2hw.entrylck.f.q > 0? 0 : entry_addrh0_we),
+  //     .wd     (entry_addrh_wd[i]),
 
-      // from internal hardware
-      .de     (1'b0),
-      .d      ('0  ),
+  //     // from internal hardware
+  //     .de     (1'b0),
+  //     .d      ('0  ),
 
-      // to internal hardware
-      .qe     (),
-      .q      (entry_table[i].addrh.q),
+  //     // to internal hardware
+  //     .qe     (),
+  //     .q      (entry_table[i].addrh.q),
 
-      // to register interface (read)
-      .qs     (entry_addrh_qs[i])
-    );
+  //     // to register interface (read)
+  //     .qs     (entry_addrh_qs[i])
+  //   );
 
-    // R[entry_cfg0]: V(False)
+  //   // R[entry_cfg0]: V(False)
 
-    //   F[r]: 0:0
-    rv_iopmp_subreg #(
-      .DW      (1),
-      .SWACCESS("RW"),
-      .RESVAL  (1'h0)
-    ) u_entry_cfg_r (
-      .clk_i   (clk_i    ),
-      .rst_ni  (rst_ni  ),
+  //   //   F[r]: 0:0
+  //   rv_iopmp_subreg #(
+  //     .DW      (1),
+  //     .SWACCESS("RW"),
+  //     .RESVAL  (1'h0)
+  //   ) u_entry_cfg_r (
+  //     .clk_i   (clk_i    ),
+  //     .rst_ni  (rst_ni  ),
 
-      // from register interface
-      .we     (entry_cfg_r_we[i]), //(reg2hw.entrylck.f.q > 0? 0 : entry_cfg0_r_we),
-      .wd     (entry_cfg_r_wd[i]),
+  //     // from register interface
+  //     .we     (entry_cfg_r_we[i]), //(reg2hw.entrylck.f.q > 0? 0 : entry_cfg0_r_we),
+  //     .wd     (entry_cfg_r_wd[i]),
 
-      // from internal hardware
-      .de     (1'b0),
-      .d      ('0  ),
+  //     // from internal hardware
+  //     .de     (1'b0),
+  //     .d      ('0  ),
 
-      // to internal hardware
-      .qe     (),
-      .q      (entry_table[i].cfg.r.q),
+  //     // to internal hardware
+  //     .qe     (),
+  //     .q      (entry_table[i].cfg.r.q),
 
-      // to register interface (read)
-      .qs     (entry_cfg_r_qs[i])
-    );
+  //     // to register interface (read)
+  //     .qs     (entry_cfg_r_qs[i])
+  //   );
 
-    //   F[w]: 1:1
-    rv_iopmp_subreg #(
-      .DW      (1),
-      .SWACCESS("RW"),
-      .RESVAL  (1'h0)
-    ) u_entry_cfg_w (
-      .clk_i   (clk_i    ),
-      .rst_ni  (rst_ni  ),
+  //   //   F[w]: 1:1
+  //   rv_iopmp_subreg #(
+  //     .DW      (1),
+  //     .SWACCESS("RW"),
+  //     .RESVAL  (1'h0)
+  //   ) u_entry_cfg_w (
+  //     .clk_i   (clk_i    ),
+  //     .rst_ni  (rst_ni  ),
 
-      // from register interface
-      .we     (entry_cfg_w_we[i]), //(reg2hw.entrylck.f.q > 0? 0 : entry_cfg0_w_we),
-      .wd     (entry_cfg_w_wd[i]),
+  //     // from register interface
+  //     .we     (entry_cfg_w_we[i]), //(reg2hw.entrylck.f.q > 0? 0 : entry_cfg0_w_we),
+  //     .wd     (entry_cfg_w_wd[i]),
 
-      // from internal hardware
-      .de     (1'b0),
-      .d      ('0  ),
+  //     // from internal hardware
+  //     .de     (1'b0),
+  //     .d      ('0  ),
 
-      // to internal hardware
-      .qe     (),
-      .q      (entry_table[i].cfg.w.q),
+  //     // to internal hardware
+  //     .qe     (),
+  //     .q      (entry_table[i].cfg.w.q),
 
-      // to register interface (read)
-      .qs     (entry_cfg_w_qs[i])
-    );
-    /* Script Modified */
+  //     // to register interface (read)
+  //     .qs     (entry_cfg_w_qs[i])
+  //   );
+  //   /* Script Modified */
 
-    //   F[x]: 2:2
-    rv_iopmp_subreg #(
-      .DW      (1),
-      .SWACCESS("RW"),
-      .RESVAL  (1'h0)
-    ) u_entry_cfg_x (
-      .clk_i   (clk_i   ),
-      .rst_ni  (rst_ni  ),
+  //   //   F[x]: 2:2
+  //   rv_iopmp_subreg #(
+  //     .DW      (1),
+  //     .SWACCESS("RW"),
+  //     .RESVAL  (1'h0)
+  //   ) u_entry_cfg_x (
+  //     .clk_i   (clk_i   ),
+  //     .rst_ni  (rst_ni  ),
 
-      // from register interface
-      .we     (entry_cfg_x_we[i]),//(reg2hw.entrylck.f.q > 0? 0 : entry_cfg0_x_we),
-      .wd     (entry_cfg_x_wd[i]),
+  //     // from register interface
+  //     .we     (entry_cfg_x_we[i]),//(reg2hw.entrylck.f.q > 0? 0 : entry_cfg0_x_we),
+  //     .wd     (entry_cfg_x_wd[i]),
 
-      // from internal hardware
-      .de     (1'b0),
-      .d      ('0  ),
+  //     // from internal hardware
+  //     .de     (1'b0),
+  //     .d      ('0  ),
 
-      // to internal hardware
-      .qe     (),
-      .q      (entry_table[i].cfg.x.q),
+  //     // to internal hardware
+  //     .qe     (),
+  //     .q      (entry_table[i].cfg.x.q),
 
-      // to register interface (read)
-      .qs     (entry_cfg_x_qs[i])
-    );
-  /* Script Modified */
+  //     // to register interface (read)
+  //     .qs     (entry_cfg_x_qs[i])
+  //   );
+  // /* Script Modified */
 
-    //   F[a]: 4:3
-    rv_iopmp_subreg #(
-      .DW      (2),
-      .SWACCESS("RW"),
-      .RESVAL  (2'h0)
-    ) u_entry_cfg_a (
-      .clk_i   (clk_i    ),
-      .rst_ni  (rst_ni  ),
+  //   //   F[a]: 4:3
+  //   rv_iopmp_subreg #(
+  //     .DW      (2),
+  //     .SWACCESS("RW"),
+  //     .RESVAL  (2'h0)
+  //   ) u_entry_cfg_a (
+  //     .clk_i   (clk_i    ),
+  //     .rst_ni  (rst_ni  ),
 
-      // from register interface
-      .we     (entry_cfg_a_we[i]),//(reg2hw.entrylck.f.q > 0? 0 : entry_cfg0_a_we),
-      .wd     (entry_cfg_a_wd[i]),
+  //     // from register interface
+  //     .we     (entry_cfg_a_we[i]),//(reg2hw.entrylck.f.q > 0? 0 : entry_cfg0_a_we),
+  //     .wd     (entry_cfg_a_wd[i]),
 
-      // from internal hardware
-      .de     (1'b0),
-      .d      ('0  ),
+  //     // from internal hardware
+  //     .de     (1'b0),
+  //     .d      ('0  ),
 
-      // to internal hardware
-      .qe     (),
-      .q      (entry_table[i].cfg.a.q),
+  //     // to internal hardware
+  //     .qe     (),
+  //     .q      (entry_table[i].cfg.a.q),
 
-      // to register interface (read)
-      .qs     (entry_cfg_a_qs[i])
-    );
-    /* Script Modified */
-  end
-  //endgenerate
+  //     // to register interface (read)
+  //     .qs     (entry_cfg_a_qs[i])
+  //   );
+  //   /* Script Modified */
+  // end
+  // //endgenerate
 
 
  logic [ADDR_HIT_SIZE - 1 : 0] addr_hit;
@@ -1444,93 +1448,6 @@ module rv_iopmp_regmap #(
   end
   //endgenerate
 
-  //generate gen_entries_write_signals
-
-  always_comb begin
-    bram_we_o = 0;
-    bram_en_o = 0;
-    bram_din_o = '0;
-
-    if(reg_we & !reg_error) begin
-      unique case (1'b1)
-        (entry_addr_hit_vector): begin
-          // Enable writing
-          bram_we_o = 1;
-          bram_en_o = 1;
-
-          for(integer i = 0; i < NUMBER_ENTRIES; i++) begin
-            if (addr_hit[ADDR_HIT_ENTRY_ADDR_OFFSET + i] & ((reg2hw.entrylck.f.q < i) | 
-                (reg2hw.entrylck.f.q == 0))) begin
-
-              bram_din_o[31:0] = reg_wdata[31:0];
-              bram_addr_o = i << 2;
-            end
-          end
-        end
-
-        (entry_addrh_hit_vector): begin
-          // Enable writing
-          bram_we_o = 1;
-          bram_en_o = 1;
-
-          for(integer i = 0; i < NUMBER_ENTRIES; i++) begin
-            if (addr_hit[ADDR_HIT_ENTRY_ADDRH_OFFSET + i] & ((reg2hw.entrylck.f.q < i) | 
-                (reg2hw.entrylck.f.q == 0))) begin
-              bram_din_o[31:0] = reg_wdata[31:0];
-              bram_addr_o = (i << 2) + 1;
-            end
-          end
-        end
-
-        (entry_cfg_hit_vector): begin
-          // Enable writing
-          bram_we_o = 1;
-          bram_en_o = 1;
-
-          for(integer i = 0; i < NUMBER_ENTRIES; i++) begin
-            if (addr_hit[ADDR_HIT_ENTRY_CFG_OFFSET + i] & ((reg2hw.entrylck.f.q < i) | 
-                (reg2hw.entrylck.f.q == 0))) begin
-
-              bram_din_o[0] = reg_wdata[0];
-              bram_din_o[1] = reg_wdata[1];
-              bram_din_o[2] = reg_wdata[2];
-              bram_din_o[4:3] = reg_wdata[4:3];
-
-              bram_addr_o = (i << 2) + 2;
-            end
-          end
-        end
-      default: ;
-      endcase
-    end
-  end
-
-  // for(genvar i = 0; i < NUMBER_ENTRIES; i++) begin 
-  //   output bram_we_o,
-  //   output bram_en_o,
-  //   output [ADDR_WIDTH-1:0] bram_addr_o,
-  //   output logic [DATA_WIDTH - 1 : 0]  bram_din_o,
-
-  //   assign entry_addr_we[i] = reg2hw.entrylck.f.q > 0? 0 : addr_hit[ADDR_HIT_ENTRY_ADDR_OFFSET + i] & reg_we & !reg_error;
-  //   assign entry_addr_wd[i] = reg_wdata[31:0];
-
-  //   assign entry_addrh_we[i] = reg2hw.entrylck.f.q > 0? 0 : addr_hit[ADDR_HIT_ENTRY_ADDRH_OFFSET + i] & reg_we & !reg_error;
-  //   assign entry_addrh_wd[i] = reg_wdata[31:0];
-
-  //   assign entry_cfg_r_we[i] = reg2hw.entrylck.f.q > 0? 0 : addr_hit[ADDR_HIT_ENTRY_CFG_OFFSET + i] & reg_we & !reg_error;
-  //   assign entry_cfg_r_wd[i] = reg_wdata[0];
-
-  //   assign entry_cfg_w_we[i] = reg2hw.entrylck.f.q > 0? 0 :addr_hit[ADDR_HIT_ENTRY_CFG_OFFSET + i] & reg_we & !reg_error;
-  //   assign entry_cfg_w_wd[i] = reg_wdata[1];
-
-  //   assign entry_cfg_x_we[i] = reg2hw.entrylck.f.q > 0? 0 :addr_hit[ADDR_HIT_ENTRY_CFG_OFFSET + i] & reg_we & !reg_error;
-  //   assign entry_cfg_x_wd[i] = reg_wdata[2];
-
-  //   assign entry_cfg_a_we[i] = reg2hw.entrylck.f.q > 0? 0 :addr_hit[ADDR_HIT_ENTRY_CFG_OFFSET + i] & reg_we & !reg_error;
-  //   assign entry_cfg_a_wd[i] = reg_wdata[4:3];
-  // end
-  //endgenerate
-
   logic   mdcfg_hit_vector;
   assign  mdcfg_hit_vector = (|addr_hit[(13 + NUMBER_MDS - 1):13]);
 
@@ -1549,9 +1466,83 @@ module rv_iopmp_regmap #(
   logic   entry_cfg_hit_vector;
   assign  entry_cfg_hit_vector = (|addr_hit[(ADDR_HIT_ENTRY_CFG_OFFSET + NUMBER_ENTRIES - 1) : ADDR_HIT_ENTRY_CFG_OFFSET]);
 
+  //generate gen_entries_write_signals
+  always_comb begin
+    bram_we_o = 0;
+    bram_en_o = 0;
+    bram_din_o = '0;
+
+    unique case (1'b1)
+      (entry_addr_hit_vector): begin
+        // Enable BRAM
+        bram_en_o = 1;
+
+        for(integer i = 0; i < NUMBER_ENTRIES; i++) begin
+          if(reg_we & !reg_error) begin // Writing?
+            if (addr_hit[ADDR_HIT_ENTRY_ADDR_OFFSET + i] & ((reg2hw.entrylck.f.q < i) |
+                (reg2hw.entrylck.f.q == 0))) begin
+
+              // Enable writing
+              bram_we_o = 1;
+              bram_din_o[31:0] = reg_wdata[31:0];
+            end
+          end
+
+          if (addr_hit[ADDR_HIT_ENTRY_ADDR_OFFSET + i]) // Enters both in writing and reading
+            bram_addr_o = i << 2; // Put correct address
+        end
+      end
+
+      (entry_addrh_hit_vector): begin
+        // Enable BRAM
+        bram_en_o = 1;
+
+        for(integer i = 0; i < NUMBER_ENTRIES; i++) begin
+          if(reg_we & !reg_error) begin // Writing?
+            if (addr_hit[ADDR_HIT_ENTRY_ADDRH_OFFSET + i] & ((reg2hw.entrylck.f.q < i) | 
+                (reg2hw.entrylck.f.q == 0))) begin
+
+              // Enable writing
+              bram_we_o = 1;
+              bram_din_o[31:0] = reg_wdata[31:0];
+            end
+          end
+          if (addr_hit[ADDR_HIT_ENTRY_ADDRH_OFFSET + i]) // Enters both in writing and reading
+            bram_addr_o = (i << 2) + 1; // Put correct address
+        end
+      end
+
+      (entry_cfg_hit_vector): begin
+        // Enable BRAM
+        bram_en_o = 1;
+
+        for(integer i = 0; i < NUMBER_ENTRIES; i++) begin
+          if(reg_we & !reg_error) begin // Writing?
+            if (addr_hit[ADDR_HIT_ENTRY_CFG_OFFSET + i] & ((reg2hw.entrylck.f.q < i) | 
+                (reg2hw.entrylck.f.q == 0))) begin
+
+              // Enable writing
+              bram_we_o = 1;
+              bram_din_o[0] = reg_wdata[0];
+              bram_din_o[1] = reg_wdata[1];
+              bram_din_o[2] = reg_wdata[2];
+              bram_din_o[4:3] = reg_wdata[4:3];
+            end
+          end
+
+          if (addr_hit[ADDR_HIT_ENTRY_CFG_OFFSET + i]) // Enters both in writing and reading
+            bram_addr_o = (i << 2) + 2; // Put correct address
+        end
+      end
+      default: ;
+    endcase
+  end
+
   // Read data return
   always_comb begin
     reg_rdata_next = '0;
+
+    read_from_bram = 0;
     unique case (1'b1)
       addr_hit[0]: begin
         reg_rdata_next[23:0] = version_vendor_qs;
@@ -1659,28 +1650,34 @@ module rv_iopmp_regmap #(
       end
 
       (entry_addr_hit_vector): begin
+        read_from_bram = reg_re; // Are we actually reading?
+
         for(integer i = 0; i < NUMBER_ENTRIES; i++) begin
           if (addr_hit[ADDR_HIT_ENTRY_ADDR_OFFSET + i]) begin
-            reg_rdata_next[31:0] = entry_addr_qs[i];
+            reg_rdata_next[31:0] = bram_dout_i;
           end
         end
       end
 
       (entry_addrh_hit_vector): begin
+        read_from_bram = reg_re; // Are we actually reading?
+
         for(integer i = 0; i < NUMBER_ENTRIES; i++) begin
           if (addr_hit[ADDR_HIT_ENTRY_ADDRH_OFFSET + i]) begin
-            reg_rdata_next[31:0] = entry_addrh_qs[i];
+            reg_rdata_next[31:0] = bram_dout_i;
           end
         end
       end
 
       (entry_cfg_hit_vector): begin
+        read_from_bram = reg_re; // Are we actually reading?
+
         for(integer i = 0; i < NUMBER_ENTRIES; i++) begin
           if (addr_hit[ADDR_HIT_ENTRY_CFG_OFFSET + i]) begin
-            reg_rdata_next[0] = entry_cfg_r_qs[i];
-            reg_rdata_next[1] = entry_cfg_w_qs[i];
-            reg_rdata_next[2] = entry_cfg_x_qs[i];
-            reg_rdata_next[4:3] = entry_cfg_a_qs[i];
+            reg_rdata_next[0] = bram_dout_i[0];
+            reg_rdata_next[1] = bram_dout_i[1];
+            reg_rdata_next[2] = bram_dout_i[2];
+            reg_rdata_next[4:3] = bram_dout_i[4:3];
           end
         end
       end
