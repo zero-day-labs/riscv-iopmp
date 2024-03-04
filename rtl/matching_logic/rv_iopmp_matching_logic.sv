@@ -100,8 +100,12 @@ assign err_interface_o = err_interface;
 
 // Helper for the srcmd_en register - Eliminates VERILATOR errors
 logic [63:0] srcmd_en;
-// This little trick allows us to save one cycle - If interfeers with timings, change later
-assign srcmd_en = state_q == IDLE? {srcmd_table_i[sid_i].enh, srcmd_table_i[sid_i].en.md} : {srcmd_table_i[sid_q].enh, srcmd_table_i[sid_q].en.md};
+
+if(NUMBER_MASTERS == 1)
+    assign srcmd_en = {srcmd_table_i[0].enh, srcmd_table_i[0].en.md}; // In "Source-Enforcement" the sid is not important
+else
+    // This little trick allows us to save one setup cycle - If interfeers with timings, change later
+    assign srcmd_en = state_q == IDLE? {srcmd_table_i[sid_i].enh, srcmd_table_i[sid_i].en.md} : {srcmd_table_i[sid_q].enh, srcmd_table_i[sid_q].en.md};
 
 assign ready_o       = (state_q == IDLE)? 1 : 0;
 assign read_enable_o = (state_q != IDLE)? 1 : 0;
@@ -362,7 +366,7 @@ always_ff @(posedge clk_i or negedge rst_ni) begin
     end
 end
 
-// Error capture logic
+// Error capture logic - It is done this way as timings were a problem with this nets
 always_ff @(posedge clk_i) begin
     if(err_transaction) begin
         // Record transaction type
@@ -416,30 +420,3 @@ rv_iopmp_entry_analyzer #(
 );
 
 endmodule
-
-// module tc_sram_wrapper #(
-//   parameter int unsigned NumWords     = 32'd1024, // Number of Words in data array
-//   parameter int unsigned DataWidth    = 32'd128,  // Data signal width
-//   parameter int unsigned ByteWidth    = 32'd8,    // Width of a data byte
-//   parameter int unsigned NumPorts     = 32'd2,    // Number of read and write ports
-//   parameter int unsigned Latency      = 32'd1,    // Latency when the read data is available
-//   parameter              SimInit      = "none",   // Simulation initialization
-//   parameter bit          PrintSimCfg  = 1'b0,     // Print configuration
-//   // DEPENDENT PARAMETERS, DO NOT OVERWRITE!
-//   parameter int unsigned AddrWidth = (NumWords > 32'd1) ? $clog2(NumWords) : 32'd1,
-//   parameter int unsigned BeWidth   = (DataWidth + ByteWidth - 32'd1) / ByteWidth, // ceil_div
-//   parameter type         addr_t    = logic [AddrWidth-1:0],
-//   parameter type         data_t    = logic [DataWidth-1:0],
-//   parameter type         be_t      = logic [BeWidth-1:0]
-// ) (
-//   input  logic                 clk_i,      // Clock
-//   input  logic                 rst_ni,     // Asynchronous reset active low
-//   // input ports
-//   input  logic  [NumPorts-1:0] req_i,      // request
-//   input  logic  [NumPorts-1:0] we_i,       // write enable
-//   input  addr_t [NumPorts-1:0] addr_i,     // request address
-//   input  data_t [NumPorts-1:0] wdata_i,    // write data
-//   input  be_t   [NumPorts-1:0] be_i,       // write byte enable
-//   // output ports
-//   output data_t [NumPorts-1:0] rdata_o     // read data
-// );
