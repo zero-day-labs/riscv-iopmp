@@ -1,7 +1,10 @@
+// Adapted from: https://docs.xilinx.com/r/en-US/ug901-vivado-synthesis/RAM-Inference-True-Dual-Port-Structure-SystemVerilog
+
 module rams_tdp_struct #(
     parameter int unsigned DATA_WIDTH      = 128,
     parameter int unsigned DEPTH           = 32,
 
+    // DO NOT CHANGE
     parameter int unsigned ADDR_WIDTH      = $clog2(DEPTH)
 ) (
     input clka_i,
