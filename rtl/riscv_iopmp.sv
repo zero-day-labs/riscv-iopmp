@@ -69,7 +69,6 @@ reg_rsp_t cfg_reg_rsp;
 logic iopmp_enabled;
 rv_iopmp_pkg::mdcfg_entry_t [NumberMds - 1:0]      mdcfg_table;
 rv_iopmp_pkg::srcmd_entry_t [NUMBER_MASTERS - 1:0] srcmd_table;
-//rv_iopmp_pkg::iopmp_entry_t [NUMBER_ENTRIES - 1:0] entry_table;
 
 // Transaction logic
 logic                                  ready;
@@ -81,18 +80,14 @@ logic [$clog2(DATA_WIDTH/8) :0]    num_bytes;
 logic [SidWidth     - 1:0]               sid;
 rv_iopmp_pkg::access_t           access_type;
 
-logic                                 read_enable;
-logic [$clog2(NUMBER_ENTRIES) - 1 : 0]  read_addr;
-logic [128 - 1 : 0]                     read_data;
-
 logic                      allow_transaction;
 rv_iopmp_pkg::error_capture_t       [NUMBER_TL_INSTANCES - 1:0] err_interface;
 
-logic                                    regmapw_we;
-logic                                    regmapw_en;
-logic [$clog2(NUMBER_ENTRIES) - 1  :0] regmapw_addr;
-logic [128 - 1 : 0]                     regmapw_din;
-logic [128 - 1 : 0]                    regmapw_dout;
+logic                                    entry_array_we[2];
+logic                                    entry_array_en[2];
+logic [$clog2(NUMBER_ENTRIES) - 1  :0] entry_array_addr[2];
+logic [128 - 1 : 0]                     entry_array_din[2];
+logic [128 - 1 : 0]                    entry_array_dout[2];
 
 rv_iopmp_cfg_abstractor_axi #(
     .DATA_WIDTH(DATA_WIDTH),
@@ -145,12 +140,12 @@ rv_iopmp_regmap_wrapper #(
     .wsi_wire_o(wsi_wire_o),
 
     // BRAM
-    .we_bram_o(regmapw_we),
-    .en_bram_o(regmapw_en),
-    .addr_bram_o(regmapw_addr),
-    .din_bram_o(regmapw_din),
+    .we_bram_o(entry_array_we[0]),
+    .en_bram_o(entry_array_en[0]),
+    .addr_bram_o(entry_array_addr[0]),
+    .din_bram_o(entry_array_din[0]),
 
-    .dout_bram_i(regmapw_dout)
+    .dout_bram_i(entry_array_dout[0])
 );
 
 rv_iopmp_matching_logic #(
@@ -186,35 +181,39 @@ rv_iopmp_matching_logic #(
     .err_interface_o(err_interface[0]),
 
     // Entry interface
-    .read_enable_o(read_enable),
-    .read_addr_o(read_addr),
-    .read_data_i(read_data),
+    .read_enable_o(entry_array_en[1]),
+    .read_addr_o(entry_array_addr[1]),
+    .read_data_i(entry_array_dout[1]),
 
-    .stall_i(regmapw_we) // When the entries are being changed, stall the matching logic
+    .stall_i(entry_array_we[0]) // When the entries are being changed, stall the matching logic
 );
+
+assign entry_array_we[1]  = '0;
+assign entry_array_din[1] = '0;
 
 // porta -> regmap_wrapper
 // portb -> matching_logic
+// TODO: Change for tc_sram_wrapper, tthe following implementation does not seem to instanciate bram efficiently
 rams_tdp_struct #(
     .DEPTH(NUMBER_ENTRIES)
 ) i_entry_ram (
     .clka_i(clk_i),
     .clkb_i(clk_i),
 
-    .wea_i(regmapw_we),
-    .web_i(0),
+    .wea_i(entry_array_we[0]),
+    .web_i(entry_array_we[1]),
 
-    .ena_i(regmapw_en),
-    .enb_i(read_enable),
+    .ena_i(entry_array_en[0]),
+    .enb_i(entry_array_en[1]),
 
-    .addra_i(regmapw_addr),
-    .addrb_i(read_addr),
+    .addra_i(entry_array_addr[0]),
+    .addrb_i(entry_array_addr[1]),
 
-    .dina_i(regmapw_din),
-    .dinb_i(0),
+    .dina_i(entry_array_din[0]),
+    .dinb_i(entry_array_din[1]),
 
-    .douta_o(regmapw_dout),
-    .doutb_o(read_data)
+    .douta_o(entry_array_dout[0]),
+    .doutb_o(entry_array_dout[1])
 );
 
 

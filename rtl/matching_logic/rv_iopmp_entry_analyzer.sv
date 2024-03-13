@@ -92,6 +92,8 @@ always_comb begin
                 partial_match_o = 0;
                 allow   = 0;
             end
+
+            final_address = {2'b0, entry_addr} << 2;
         end
         rv_iopmp_pkg::NA4, rv_iopmp_pkg::NAPOT: begin
             if (mode_i == rv_iopmp_pkg::NA4)
