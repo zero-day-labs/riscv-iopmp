@@ -5,7 +5,8 @@
 // Description: Converts between different widths BRAM.
 
 // When inside a snd_stage the module is not ready to receive new data -> ready = 0
-// When output data is valid -> valid = 0
+// When output data is valid -> valid = 1
+
 module dwidth_converter_bram #(
     parameter int unsigned BRAM_DWIDTH  = 128,
     parameter int unsigned OUT_WIDTH    = 32,
@@ -71,7 +72,7 @@ always_comb begin
 
     if(write_snd_stage_en_q) begin
         // Replace the correct bits and write to the BRAM
-        // Verilatr does not like making the expression into one so
+        // Verilatr does not like making the expression into one
         actual_shift_qtty = (shift_qtty_q << $clog2(OUT_WIDTH));
 
         din_bram_o = dout_bram_i;
@@ -84,7 +85,7 @@ always_comb begin
         we_bram_o = 1;
         ready_o   = 0;
     end else if(read_snd_stage_en_q) begin
-        // Verilatr does not like making the expression into one so
+        // Verilatr does not like making the expression into one
         actual_shift_qtty = (shift_qtty_q << $clog2(OUT_WIDTH));
 
         dout_o  = dout_bram_i >> actual_shift_qtty;
