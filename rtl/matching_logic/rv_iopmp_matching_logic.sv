@@ -83,14 +83,17 @@ logic [32 - 1 : 0]               entry_cfg;
 
 logic entry_match, partial_entry_match, entry_allow;
 
+// Wire to the data coming from entry array
 assign entry_addr = read_data_i[63 : 0];
 assign entry_cfg  = read_data_i[95 : 64];
 
-logic [$clog2(NUMBER_ENTRIES) - 1 : 0]       current_entry_n, current_entry_q;
-logic [7 - 1 : 0]                current_md_n, current_md_q;
-logic [7 - 1 : 0]                next_md_n, next_md_q;
-logic [7 - 1 : 0]                initial_md_n, initial_md_q;
+// MD and entry control variables
+logic [$clog2(NUMBER_ENTRIES) - 1 : 0]      current_entry_n, current_entry_q;
+logic [7 - 1 : 0]                           current_md_n, current_md_q;
+logic [7 - 1 : 0]                           next_md_n, next_md_q;
+logic [7 - 1 : 0]                           initial_md_n, initial_md_q;
 
+// Helper signals
 logic has_md_n, has_md_q, last_md, get_next_md, reset_md, err_transaction;
 
 // Error
@@ -102,13 +105,16 @@ assign err_interface_o = err_interface;
 logic [63:0] srcmd_en;
 
 if(NUMBER_MASTERS == 1)
-    assign srcmd_en = {srcmd_table_i[0].enh, srcmd_table_i[0].en.md}; // In "Source-Enforcement" the sid is not important
+    assign srcmd_en = {srcmd_table_i[0].enh, srcmd_table_i[0].en.md}; // In "Source-Enforcement" the sid is not used
 else
     // This little trick allows us to save one setup cycle - If interfeers with timings, change later
     assign srcmd_en = state_q == IDLE? {srcmd_table_i[sid_i].enh, srcmd_table_i[sid_i].en.md} : {srcmd_table_i[sid_q].enh, srcmd_table_i[sid_q].en.md};
 
+// The module is only ready when in IDLE state
 assign ready_o       = (state_q == IDLE)? 1 : 0;
+// Enable the reading of the entry array, no need to control this as we are always reading
 assign read_enable_o = (state_q != IDLE)? 1 : 0;
+// Just propragate the address to the entry array
 assign read_addr_o   = current_entry_n;
 
 always_comb begin
@@ -176,57 +182,41 @@ always_comb begin
 
             NORMAL_OP: begin
                 cached_entry_n = read_data_i;
-                // Current entry is TOR? Or Did we come back from TOR_OP? Or recently changed MD or is the first time we are here? Not cached entry
+                // Error type
+                err_type_n = access_type_q; // Most common type of error, if it is not this change later in the state
+
+                // If current entry is TOR, and we didnt come back from TOR_OP, and it is the first iteration where initial_md != 0
+                // OR we just changed md -> Meaning, not cached entry or cached entry is not valid
                 if(entry_cfg[4:3] == 2'h1 & !tor_override_q & ((first_iteration_q & current_md_q != 0) | new_md_q )) begin
+                    // Override current entry address to equal the previous one, and go to TOR_OP
                     current_entry_n = current_entry_q - 1;
                     state_n         = TOR_OP;
                 end
                 else begin
-                    // we are on the first entry, previous entry_addr = 0
+                    // If we are on the first entry, previous entry_addr = 0
                     if(current_entry_q == 0)
                         previous_entry_addr = 0;
-                    else
+                    else // Else use the cached entry
                         previous_entry_addr = cached_entry_q[63:0];
 
                     // Decision taking
                     if(entry_match) begin  // We have a full match with the current entry
-                        if(entry_allow) begin
+                        if(entry_allow)    // Did entry analyzer allow the transaction? Go to valid state
                             state_n = VALID;
-                        end else begin
+                        else
                             state_n = ERROR;
-
-                            // Error type
-                            case(access_type_q)
-                                rv_iopmp_pkg::ACCESS_READ, rv_iopmp_pkg::ACCESS_WRITE:
-                                    err_type_n = access_type_q;
-                                rv_iopmp_pkg::ACCESS_EXECUTION:
-                                    err_type_n = 3'h3;
-                                default:
-                                    err_type_n = 3'h7; // Use some kind of error
-                            endcase
-                        end
                     end
                     else begin
-                        // We hit a partial match, just restart with the new base address, equal to the final address the entry allows
+                        // We hit a partial match?
                         if(partial_entry_match) begin
-                            // If what was partially matched is allowed
+                            // If what was partially matched is at least allowed?
                             if(entry_allow) begin
+                                // Just restart with the new base address, equal to the final address the current entry allows
                                 state_n = SETUP;
                                 addr_to_check_n = entry_final_addr;
                             end
-                            else begin
+                            else // If not allowed just declare an error
                                 state_n = ERROR;
-
-                                // Error type
-                                case(access_type_q)
-                                    rv_iopmp_pkg::ACCESS_READ, rv_iopmp_pkg::ACCESS_WRITE:
-                                        err_type_n = access_type_q;
-                                    rv_iopmp_pkg::ACCESS_EXECUTION:
-                                        err_type_n = 3'h3;
-                                    default:
-                                        err_type_n = 3'h7; // Use some kind of error
-                                endcase
-                            end
                         end
                         else begin
                             // Entry address calculation
@@ -241,7 +231,7 @@ always_comb begin
                                     new_md_n        = 1;
                                 end
                             end
-                            else if(current_entry_q == NUMBER_ENTRIES - 1) begin // Are we on the last entry? Prevents locking up
+                            else if(current_entry_q == NUMBER_ENTRIES - 1) begin // Are we on the last entry? Prevents locking up if something goes wrong
                                 state_n = ERROR;
                                 err_type_n = 3'h5;
                             end else
@@ -254,7 +244,7 @@ always_comb begin
             TOR_OP: begin
                 cached_entry_n  = read_data_i; // Cache the previous entry, which is the current one
                 current_entry_n = current_entry_q + 1; // Get back to the correct entry on next cycle
-                tor_override_n  = 1;
+                tor_override_n  = 1;                   // Indicate we came from TOR_OP
                 state_n         = NORMAL_OP;
             end
 
@@ -265,7 +255,7 @@ always_comb begin
             end
 
             ERROR: begin
-                err_transaction = (err_type_q != 0)? 1 : 0;
+                err_transaction = (err_type_q != 0)? 1 : 0; // Did we come here because IOPMP off?
                 valid_o = 1;
                 allow_transaction_o = 0;
                 state_n = IDLE;
@@ -320,6 +310,7 @@ always_comb begin
     case (state_q)
         IDLE: begin
             has_md_n = 0;
+            // Search the srcmd entry for the first corresponding MD
             for(int i = 0; i < NUMBER_MDS; i++) begin
                 // Setup base value, according to lowest MD
                 if(srcmd_en[i]) begin
@@ -331,27 +322,29 @@ always_comb begin
             end
         end
         default: begin
+            // Get next_md address ready for use
             for(int i = 0; i < NUMBER_MDS; i++) begin
-                // Get next_md address ready for use
+                // If the MD belongs to the current SID, and it is a higher value MD than the current one
                 if(srcmd_en[i] && i > current_md_q) begin
                     next_md_n = i;
                     break;
                 end
-                if( i == NUMBER_MDS - 1) begin // If we are here, we are on the last MD?
+                if( i == NUMBER_MDS - 1) begin // If we are here, we are on the last MD
                     last_md = 1;
                     break;
                 end
             end
 
+            // The FSM has started a reset operation
             if(reset_md)
                 current_md_n = initial_md_q;
-            else if(get_next_md)
+            else if(get_next_md) // The FSM has reached the last entry on the MD
                 current_md_n = next_md_q;
         end
     endcase
 end
 
-// Sequential process MD calculation
+// Sequential process MD manipulation
 always_ff @(posedge clk_i or negedge rst_ni) begin
     if (!rst_ni) begin
         current_md_q <= 0;
@@ -368,33 +361,17 @@ end
 
 // Error capture logic - It is done this way as timings were a problem with this nets
 always_ff @(posedge clk_i) begin
-    if(err_transaction) begin
-        // Record transaction type
-        case(access_type_q)
-            rv_iopmp_pkg::ACCESS_READ, rv_iopmp_pkg::ACCESS_WRITE:
-                err_interface.ttype <= access_type_q[1:0]; // Eliminate possible truncate errors
-            rv_iopmp_pkg::ACCESS_EXECUTION:
-                err_interface.ttype <= 2'h3;
-            default:
-                err_interface.ttype <= 2'h1; // Unlikely to reach here, but use some type of transaction as 0 is reserved
-        endcase
-        err_interface.error_detected <= 1;
-        err_interface.etype          <= err_type_q;
-        err_interface.err_reqid.sid  <= sid_q;
-        err_interface.err_reqid.eid  <= current_entry_q;
+    // Record transaction type
+    // Execution is not supported, so no need for that error type
 
-        err_interface.err_reqaddr   <= addr_to_check_q[31:0];
-        err_interface.err_reqaddrh  <= addr_to_check_q[63:32];
-    end
-    else begin
-        err_interface.error_detected <= 0;
-        err_interface.ttype          <= 0;
-        err_interface.etype          <= 0;
-        err_interface.err_reqid.sid  <= 0;
-        err_interface.err_reqid.eid  <= 0;
-        err_interface.err_reqaddr    <= 0;
-        err_interface.err_reqaddrh   <= 0;
-    end
+    err_interface.ttype <= access_type_q[1:0]; // Eliminate possible truncate errors
+    err_interface.error_detected <= err_transaction;
+    err_interface.etype          <= err_type_q;
+    err_interface.err_reqid.sid  <= sid_q;
+    err_interface.err_reqid.eid  <= current_entry_q;
+
+    err_interface.err_reqaddr   <= addr_to_check_q[31:0];
+    err_interface.err_reqaddrh  <= addr_to_check_q[63:32];
 end
 
 rv_iopmp_entry_analyzer #(

@@ -47,7 +47,7 @@ assign entry_addr_n = {2'b11, ~entry_addr};
 logic [CHECK_LEN - 1:0] base;
 logic [CHECK_LEN    :0] final_address; // The supported addresses can reach 2^(67) 
 logic [CHECK_LEN - 1:0] mask;
-logic [$clog2(CHECK_LEN) :0] size; // Can be trail ones + 3, which needs at least one more bit
+logic [$clog2(CHECK_LEN) :0] size; // Can be trail ones + 3
 logic allow;
 
 assign allow_o = allow & ((transaction_type_i & access_permissions_i) == transaction_type_i);
@@ -93,7 +93,7 @@ always_comb begin
                 allow   = 0;
             end
 
-            final_address = {2'b0, entry_addr} << 2;
+            final_address = {2'b0, entry_addr} << 2; // Propagate as it might be needed outside the IP
         end
         rv_iopmp_pkg::NA4, rv_iopmp_pkg::NAPOT: begin
             if (mode_i == rv_iopmp_pkg::NA4)
