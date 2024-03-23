@@ -86,6 +86,7 @@ rv_iopmp_pkg::error_capture_t       [NUMBER_TL_INSTANCES - 1:0] err_interface;
 logic                                    entry_array_we[2];
 logic                                    entry_array_en[2];
 logic [$clog2(NUMBER_ENTRIES) - 1  :0] entry_array_addr[2];
+logic [16-1 : 0]                         entry_array_be[2];
 logic [128 - 1 : 0]                     entry_array_din[2];
 logic [128 - 1 : 0]                    entry_array_dout[2];
 
@@ -190,30 +191,47 @@ rv_iopmp_matching_logic #(
 
 assign entry_array_we[1]  = '0;
 assign entry_array_din[1] = '0;
+assign entry_array_be[0]  = '1;
+assign entry_array_be[1]  = '1;
 
 // porta -> regmap_wrapper
 // portb -> matching_logic
 // TODO: Change for tc_sram_wrapper, tthe following implementation does not seem to instanciate bram efficiently
-rams_tdp_struct #(
-    .DEPTH(NUMBER_ENTRIES)
+// rams_tdp_struct #(
+//     .DEPTH(NUMBER_ENTRIES)
+// ) i_entry_ram (
+//     .clka_i(clk_i),
+//     .clkb_i(clk_i),
+
+//     .wea_i(entry_array_we[0]),
+//     .web_i(entry_array_we[1]),
+
+//     .ena_i(entry_array_en[0]),
+//     .enb_i(entry_array_en[1]),
+
+//     .addra_i(entry_array_addr[0]),
+//     .addrb_i(entry_array_addr[1]),
+
+//     .dina_i(entry_array_din[0]),
+//     .dinb_i(entry_array_din[1]),
+
+//     .douta_o(entry_array_dout[0]),
+//     .doutb_o(entry_array_dout[1])
+// );
+
+tc_sram_wrapper #(
+  .NumWords(NUMBER_ENTRIES) // Number of Words in data array
 ) i_entry_ram (
-    .clka_i(clk_i),
-    .clkb_i(clk_i),
-
-    .wea_i(entry_array_we[0]),
-    .web_i(entry_array_we[1]),
-
-    .ena_i(entry_array_en[0]),
-    .enb_i(entry_array_en[1]),
-
-    .addra_i(entry_array_addr[0]),
-    .addrb_i(entry_array_addr[1]),
-
-    .dina_i(entry_array_din[0]),
-    .dinb_i(entry_array_din[1]),
-
-    .douta_o(entry_array_dout[0]),
-    .doutb_o(entry_array_dout[1])
+  .clk_i(clk_i),      // Clock
+  .rst_ni(rst_ni),     // Asynchronous reset active low
+  // input ports
+  .req_i({entry_array_en[1], entry_array_en[0]}),      // request
+  .we_i({entry_array_we[1], entry_array_we[0]}),       // write enable
+  .addr_i({entry_array_addr[1], entry_array_addr[0]}),     // request address
+  .wdata_i({entry_array_din[1], entry_array_din[0]}),    // write data
+  .be_i({entry_array_be[1], entry_array_be[0]}),       // write byte enable
+  // output ports
+  .rdata_o({entry_array_dout[1], entry_array_dout[0]})     // read data
 );
 
 
