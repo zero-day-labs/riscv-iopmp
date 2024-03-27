@@ -12,6 +12,8 @@
 ///   in_i = 000_1000, empty_o = 0, cnt_o = 3 (mode = 0)
 /// Furthermore, this unit contains a more efficient implementation for Verilator (simulation only).
 /// This speeds up simulation significantly.
+`include "cf_math_pkg.sv"
+
 module lzc #(
   /// The width of the input vector.
   parameter int unsigned WIDTH = 2,
