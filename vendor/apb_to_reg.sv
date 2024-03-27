@@ -10,6 +10,7 @@
 //
 // Florian Zaruba <zarubaf@iis.ee.ethz.ch>
 
+/* verilator lint_off WIDTH */
 module apb_to_reg (
   input  logic          clk_i,
   input  logic          rst_ni,
@@ -36,4 +37,6 @@ module apb_to_reg (
     pslverr_o = reg_o.error;
     prdata_o = reg_o.rdata;
   end
+
+/* verilator lint_on WIDTH */
 endmodule

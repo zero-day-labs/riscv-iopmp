@@ -50,6 +50,8 @@
 //                       `rdata_o` when `req_i` and `we_i` are asserted. The output data is stable
 //                       on write requests.
 
+/* verilator lint_off WIDTH */
+
 module tc_sram #(
   parameter int unsigned NumWords     = 32'd1024, // Number of Words in data array
   parameter int unsigned DataWidth    = 32'd128,  // Data signal width
@@ -239,3 +241,5 @@ module tc_sram #(
 `endif
 // pragma translate_on
 endmodule
+
+/* verilator lint_on WIDTH */
