@@ -39,6 +39,7 @@ module rv_iopmp_regmap_wrapper #(
     output logic en_bram_o,
     output logic [$clog2(NUMBER_ENTRIES) - 1  :0] addr_bram_o,
     output logic [128 - 1 : 0] din_bram_o,
+    output logic [(128 / 8) - 1 : 0] be_bram_o,
 
     input  logic [128 - 1 : 0] dout_bram_i
 );
@@ -126,6 +127,8 @@ dwidth_converter_bram #(
 
     .dout_o(bram_dout),
     .dout_bram_i(dout_bram_i),
+
+    .be_bram_o(be_bram_o),
 
     // Info
     .valid_o(bram_valid),
