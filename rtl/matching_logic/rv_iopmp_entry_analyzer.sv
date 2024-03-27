@@ -6,7 +6,7 @@
 //              Module responsible for matching the transaction address with the stored entries,
 //              according to the configured entry rules.
 
-// Disabled verilator lint_off WIDTHEXPAND
+/* verilator lint_off WIDTH */
 module rv_iopmp_entry_analyzer #(
     parameter int LEN = 32,
     parameter int CHECK_LEN = 66,           // In the spec the entry registers hold data for the 65:2, so 66 bits
@@ -133,4 +133,4 @@ end
 
 
 endmodule
-// Disabled verilator lint_on WIDTHEXPAND
+/* verilator lint_on WIDTH */

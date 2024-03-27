@@ -7,6 +7,8 @@
 // When inside a snd_stage the module is not ready to receive new data -> ready = 0
 // When output data is valid -> valid = 1
 
+/* verilator lint_off WIDTH */
+
 module dwidth_converter_bram #(
     parameter int unsigned BRAM_DWIDTH  = 128,
     parameter int unsigned OUT_WIDTH    = 32,
@@ -120,3 +122,5 @@ always_ff @(posedge clk_i or negedge rst_ni) begin
 end
 
 endmodule
+
+/* verilator lint_on WIDTH */

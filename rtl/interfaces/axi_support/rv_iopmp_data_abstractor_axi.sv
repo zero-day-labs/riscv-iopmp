@@ -6,7 +6,7 @@
 //              Module responsible for abstracting the rest of the logic from the data bus protocol.
 //              It calculates every address the transaction passes trough and passes it to the matching logic.
 
-
+/* verilator lint_off WIDTH */
 module rv_iopmp_data_abstractor_axi #(
     parameter int unsigned SID_WIDTH      = 8,
     // width of data bus in bits
@@ -283,3 +283,4 @@ axi_err_slv #(
 );
 
 endmodule
+/* verilator lint_on WIDTH */

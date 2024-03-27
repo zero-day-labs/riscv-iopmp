@@ -368,11 +368,11 @@ module rv_iopmp_regmap #(
   // constant-only read
   assign hwcfg0_stall_en_qs = 1'h0;
 
-
+  /* verilator lint_off WIDTH */
   //   F[md_num]: 30:24
   // constant-only read
   assign hwcfg0_md_num_qs = NUMBER_MDS;
-
+  /* verilator lint_on WIDTH */
 
   //   F[enable]: 31:31
   rv_iopmp_subreg #(
@@ -402,6 +402,7 @@ module rv_iopmp_regmap #(
 
   // R[hwcfg1]: V(False)
 
+  /* verilator lint_off WIDTH */
   //   F[sid_num]: 15:0
   // constant-only read
   assign hwcfg1_sid_num_qs = NUMBER_MASTERS;
@@ -410,7 +411,7 @@ module rv_iopmp_regmap #(
   //   F[entry_num]: 31:16
   // constant-only read
   assign hwcfg1_entry_num_qs = NUMBER_ENTRIES;
-
+  /* verilator lint_on WIDTH */
 
   // R[hwcfg2]: V(False)
 
@@ -1190,8 +1191,10 @@ module rv_iopmp_regmap #(
   assign hwcfg0_enable_we = addr_hit[2] & reg_we & !reg_error;
   assign hwcfg0_enable_wd = reg_wdata[31];
 
+  /* verilator lint_off WIDTH */
   assign hwcfg2_prio_entry_we = addr_hit[4] & reg_we & !reg_error;
   assign hwcfg2_prio_entry_wd = (reg_wdata[15:0] > NUMBER_ENTRIES - 1)? reg2hw.hwcfg2.prio_entry.q: reg_wdata[15:0];
+  /* verilator lint_on WIDTH */
 
   assign hwcfg2_sid_transl_we = addr_hit[4] & reg_we & !reg_error;
   assign hwcfg2_sid_transl_wd = reg_wdata[31:16];
@@ -1223,19 +1226,24 @@ module rv_iopmp_regmap #(
   assign mdcfglck_l_we = addr_hit[7] & reg_we & !reg_error;
   assign mdcfglck_l_wd = reg_wdata[0];
 
+  /* verilator lint_off WIDTH */
   assign mdcfglck_f_we = (reg2hw.mdcfglck.l.q == 1)? 0: addr_hit[7] & reg_we & !reg_error;
   assign mdcfglck_f_wd = (reg_wdata[7:1] < reg2hw.mdcfglck.f.q | reg_wdata[7:1] > NUMBER_MDS)? reg2hw.mdcfglck.f.q: reg_wdata[7:1];
+  /* verilator lint_on WIDTH */
 
   assign entrylck_l_we = addr_hit[8] & reg_we & !reg_error;
   assign entrylck_l_wd = reg_wdata[0];
 
+  /* verilator lint_off WIDTH */
   assign entrylck_f_we = (reg2hw.entrylck.l.q == 1)? 0: addr_hit[8] & reg_we & !reg_error;
   assign entrylck_f_wd = (reg_wdata[16:1] < reg2hw.entrylck.f.q | reg_wdata[16:1] > NUMBER_ENTRIES) ?
                             reg2hw.entrylck.f.q: reg_wdata[16:1];
+  /* verilator lint_on WIDTH */
 
   assign err_reqinfo_ip_we = addr_hit[9] & reg_we & !reg_error;
   assign err_reqinfo_ip_wd = reg_wdata[0];
 
+  /* verilator lint_off WIDTH */
   //generate gen_mdcfg_write_signals
   for(genvar i = 0; i < NUMBER_MDS; i++) begin 
     // If locked, do not accept writes
@@ -1249,6 +1257,7 @@ module rv_iopmp_regmap #(
                   ? mdcfg_table[i].q: reg_wdata[15:0];
   end
   //endgenerate
+  /* verilator lint_on WIDTH */
 
   //generate gen_srcmd_write_signals
   for(genvar i = 0; i < NUMBER_MASTERS; i++) begin 
@@ -1281,6 +1290,7 @@ module rv_iopmp_regmap #(
   logic   entry_cfg_hit_vector;
   assign  entry_cfg_hit_vector = (|addr_hit[(ADDR_HIT_ENTRY_CFG_OFFSET + NUMBER_ENTRIES - 1) : ADDR_HIT_ENTRY_CFG_OFFSET]);
 
+  /* verilator lint_off WIDTH */
   //generate gen_entries_write_signals
   always_comb begin
     bram_we_o = 0;
@@ -1352,6 +1362,7 @@ module rv_iopmp_regmap #(
       default: ;
     endcase
   end
+  /* verilator lint_on WIDTH */
 
   // Read data return
   always_comb begin

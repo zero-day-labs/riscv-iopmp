@@ -7,6 +7,7 @@
 
 `include "register_interface/assign.svh"
 
+/* verilator lint_off WIDTH */
 module rv_iopmp_cfg_abstractor_axi #(
     // width of data bus in bits
     parameter int unsigned DATA_WIDTH     = 64,
@@ -147,3 +148,4 @@ module rv_iopmp_cfg_abstractor_axi #(
 
 
 endmodule
+/* verilator lint_on WIDTH */

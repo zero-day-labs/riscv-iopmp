@@ -5,6 +5,7 @@
 // Description: RISC-V IOPMP Transaction Logic.
 //              Module responsible for encapsulating all of the logic responsible for assessing transactions
 
+/* verilator lint_off WIDTH */
 module rv_iopmp_matching_logic #(
     // width of address bus in bits
     parameter int unsigned ADDR_WIDTH      = 64,
@@ -397,3 +398,4 @@ rv_iopmp_entry_analyzer #(
 );
 
 endmodule
+/* verilator lint_on WIDTH */
