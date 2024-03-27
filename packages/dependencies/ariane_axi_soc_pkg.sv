@@ -38,6 +38,7 @@ package ariane_axi_soc;
     typedef logic [StrbWidth-1:0] strb_t;
     typedef logic [UserWidth-1:0] user_t;
 
+    typedef logic [3:0]  nsaid_t;
     // AXI DVM extension
     typedef logic [23:0] mmu_sid_t;
     typedef logic        mmu_ssidv_t;
@@ -93,6 +94,23 @@ package ariane_axi_soc;
         mmu_ssidv_t       ss_id_valid;
         mmu_ssid_t        substream_id;
     } aw_chan_mmu_t;
+
+    // AW Channel - AXI User extension for IOPMP
+    typedef struct packed {
+        id_t              id;
+        addr_t            addr;
+        axi_pkg::len_t    len;
+        axi_pkg::size_t   size;
+        axi_pkg::burst_t  burst;
+        logic             lock;
+        axi_pkg::cache_t  cache;
+        axi_pkg::prot_t   prot;
+        axi_pkg::qos_t    qos;
+        axi_pkg::region_t region;
+        axi_pkg::atop_t   atop;
+        user_t            user;
+        nsaid_t           nsaid;
+    } aw_chan_nsaid_t;
 
     // W Channel - AXI4 doesn't define a wid
     typedef struct packed {
@@ -163,6 +181,22 @@ package ariane_axi_soc;
         mmu_ssidv_t       ss_id_valid;
         mmu_ssid_t        substream_id;
     } ar_chan_mmu_t;
+
+    // AR Channel
+    typedef struct packed {
+        id_t             id;
+        addr_t            addr;
+        axi_pkg::len_t    len;
+        axi_pkg::size_t   size;
+        axi_pkg::burst_t  burst;
+        logic             lock;
+        axi_pkg::cache_t  cache;
+        axi_pkg::prot_t   prot;
+        axi_pkg::qos_t    qos;
+        axi_pkg::region_t region;
+        user_t            user;
+        nsaid_t           nsaid;
+    } ar_chan_nsaid_t;
 
     // R Channel
     typedef struct packed {
@@ -236,6 +270,18 @@ package ariane_axi_soc;
         logic           ar_valid;
         logic           r_ready;
     } req_mmu_t;
+
+    // Request/Response structs
+    typedef struct packed {
+        aw_chan_nsaid_t aw;
+        logic           aw_valid;
+        w_chan_t        w;
+        logic           w_valid;
+        logic           b_ready;
+        ar_chan_nsaid_t ar;
+        logic           ar_valid;
+        logic           r_ready;
+    } req_nsaid_t;
 
 endpackage
 
