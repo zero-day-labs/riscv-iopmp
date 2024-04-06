@@ -29,9 +29,7 @@ module rv_iopmp_matching_logic #(
     parameter int unsigned ENTRY_ADDR_LEN = 32,
     parameter int unsigned NUMBER_MDS     = 2,
     parameter int unsigned NUMBER_ENTRIES = 8,
-    parameter int unsigned NUMBER_MASTERS = 2,
-
-    parameter int unsigned NUMBER_ENTRY_ANALYZERS= 32
+    parameter int unsigned NUMBER_MASTERS = 2
 ) (
     // rising-edge clock
     input  logic     clk_i,
@@ -39,6 +37,7 @@ module rv_iopmp_matching_logic #(
     input  logic     rst_ni,
 
     input logic iopmp_enabled_i,
+    input logic [15:0] nr_prio_entry_i,
     input rv_iopmp_pkg::mdcfg_entry_t [NUMBER_MDS - 1:0]     mdcfg_table_i,
     input rv_iopmp_pkg::srcmd_entry_t [NUMBER_MASTERS - 1:0] srcmd_table_i,
 
@@ -76,10 +75,11 @@ typedef enum logic[2:0] {
     SETUP
 } state_t;
 
+logic is_prio_entry;
+
 // State Machine variables
 state_t                          state_n, state_q;
 logic [ADDR_WIDTH - 1 : 0]       addr_to_check_n, addr_to_check_q;
-logic [ADDR_WIDTH - 1 : 0]       previous_addr_to_check_n, previous_addr_to_check_q;
 logic [ADDR_WIDTH - 1 : 0]       final_addr_to_check_n, final_addr_to_check_q;
 logic [$clog2(DATA_WIDTH/8) :0]  num_bytes_n, num_bytes_q;
 logic [SID_WIDTH - 1:0]          sid_n, sid_q;
@@ -109,6 +109,9 @@ logic [7 - 1 : 0]                           initial_md_n, initial_md_q;
 // Helper signals
 logic has_md_n, has_md_q, last_md, get_next_md, reset_md, err_transaction;
 
+// Track prio entries
+assign is_prio_entry = (current_entry_q < nr_prio_entry_i) ? 1'b1: 1'b0;
+
 // Error
 rv_iopmp_pkg::error_capture_t err_interface;
 // Output error_capture
@@ -134,7 +137,6 @@ always_comb begin
     state_n                  = state_q;
     current_entry_n          = current_entry_q;
     addr_to_check_n          = addr_to_check_q;
-    previous_addr_to_check_n = previous_addr_to_check_q;
     final_addr_to_check_n    = final_addr_to_check_q;
     num_bytes_n              = num_bytes_q;
     sid_n                    = sid_q;
@@ -160,6 +162,7 @@ always_comb begin
                 num_bytes_n           = num_bytes_i;
                 sid_n                 = sid_i;
                 access_type_n         = access_type_i;
+                cached_entry_n        = 0;
 
                 if(transaction_en_i) begin
                     if(!iopmp_enabled_i) begin    // IOPMP Not enabled, reject
@@ -206,32 +209,17 @@ always_comb begin
                     state_n         = TOR_OP;
                 end
                 else begin
-                    // If we are on the first entry, previous entry_addr = 0
-                    if(current_entry_q == 0)
-                        previous_entry_addr = 0;
-                    else // Else use the cached entry
-                        previous_entry_addr = cached_entry_q[63:0];
+                    previous_entry_addr = cached_entry_q[63:0];
+                    unique casez({is_prio_entry, partial_entry_match, entry_match, entry_allow})
+                        4'b1010, 4'b1100: state_n = ERROR; // When in prio, any match without allow is an error
 
-                    // Decision taking
-                    if(entry_match) begin  // We have a full match with the current entry
-                        if(entry_allow)    // Did entry analyzer allow the transaction? Go to valid state
-                            state_n = VALID;
-                        else
-                            state_n = ERROR;
-                    end
-                    else begin
-                        // We hit a partial match?
-                        if(partial_entry_match) begin
-                            // If what was partially matched is at least allowed?
-                            if(entry_allow) begin
-                                // Just restart with the new base address, equal to the final address the current entry allows
-                                state_n = SETUP;
-                                addr_to_check_n = entry_final_addr;
-                            end
-                            else // If not allowed just declare an error
-                                state_n = ERROR;
+                        4'b?011: state_n = VALID; // When it is a full allow, it does not matter if it is prio or not (Since we analyze prio_entries first)
+                        4'b?101: begin
+                            // Just restart with the new base address, equal to the final address the current entry allows
+                            state_n = SETUP;
+                            addr_to_check_n = entry_final_addr;
                         end
-                        else begin
+                        default: begin
                             // Entry address calculation
                             if(current_entry_q == mdcfg_table_i[current_md_q] - 1) begin // Check if it is necessary to change MD
                                 if(last_md) begin
@@ -244,16 +232,13 @@ always_comb begin
                                     new_md_n        = 1;
                                 end
                             end
-                            else if(current_entry_q == NUMBER_ENTRIES - 1) begin // Are we on the last entry? Prevents locking up if something goes wrong
-                                state_n = ERROR;
-                                err_type_n = 3'h5;
-                            end else
+                            else
                                 current_entry_n = current_entry_q + 1;
                         end
-                    end
+                    endcase
                 end
             end
-
+            // TODO: This state can be merged into NORMAL_OP. For now it helps in code readability and mantainability
             TOR_OP: begin
                 cached_entry_n  = read_data_i; // Cache the previous entry, which is the current one
                 current_entry_n = current_entry_q + 1; // Get back to the correct entry on next cycle
@@ -284,7 +269,6 @@ always_ff @(posedge clk_i or negedge rst_ni) begin
     if (!rst_ni) begin
         state_q                     <= IDLE;
         addr_to_check_q             <= 0;
-        previous_addr_to_check_q    <= 0;
         final_addr_to_check_q       <= 0;
         current_entry_q             <= 0;
         num_bytes_q                 <= 0;
@@ -298,7 +282,6 @@ always_ff @(posedge clk_i or negedge rst_ni) begin
     end else begin
         state_q                     <= state_n;
         addr_to_check_q             <= addr_to_check_n;
-        previous_addr_to_check_q    <= previous_addr_to_check_n;
         final_addr_to_check_q       <= final_addr_to_check_n;
         current_entry_q             <= current_entry_n;
         num_bytes_q                 <= num_bytes_n;

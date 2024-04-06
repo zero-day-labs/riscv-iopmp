@@ -28,6 +28,7 @@ module rv_iopmp_regmap #(
   parameter int unsigned NUMBER_MDS = 2,
   parameter int unsigned NUMBER_ENTRIES = 8,
   parameter int unsigned NUMBER_MASTERS = 2,
+  parameter int unsigned NUMBER_PRIO_ENTRIES = 4,
 
   parameter int unsigned NO_W = 0
 ) (
@@ -41,7 +42,6 @@ module rv_iopmp_regmap #(
 
   output rv_iopmp_pkg::mdcfg_entry_t [NUMBER_MDS - 1    :0] mdcfg_table_o,
   output rv_iopmp_pkg::srcmd_entry_t [NUMBER_MASTERS - 1:0] srcmd_table_o,
-  //output rv_iopmp_pkg::iopmp_entry_t [NUMBER_ENTRIES - 1:0] entry_table_o,
 
   // Config
   input devmode_i, // If 1, explicit error return for unmapped register access
@@ -425,7 +425,7 @@ module rv_iopmp_regmap #(
   rv_iopmp_subreg #(
     .DW      (16),
     .SWACCESS("RW"),
-    .RESVAL  (16'h0)
+    .RESVAL  (NUMBER_PRIO_ENTRIES)
   ) u_hwcfg2_prio_entry (
     .clk_i   (clk_i    ),
     .rst_ni  (rst_ni  ),

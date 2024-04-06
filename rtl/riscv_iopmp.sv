@@ -51,8 +51,7 @@ module riscv_iopmp #(
     parameter int unsigned NUMBER_MDS      = 2,
     parameter int unsigned NUMBER_ENTRIES  = 8,
     parameter int unsigned NUMBER_MASTERS  = 2,
-    parameter int unsigned NUMBER_TL_INSTANCES = 1,
-    parameter int unsigned NUMBER_ENTRY_ANALYZERS = 8
+    parameter int unsigned NUMBER_TL_INSTANCES = 1
 ) (
     input logic clk_i,
     input logic rst_ni,
@@ -79,6 +78,7 @@ reg_req_t cfg_reg_req;
 reg_rsp_t cfg_reg_rsp;
 
 logic iopmp_enabled;
+logic [15 : 0] nr_prio_entry;
 rv_iopmp_pkg::mdcfg_entry_t [NumberMds - 1:0]      mdcfg_table;
 rv_iopmp_pkg::srcmd_entry_t [NUMBER_MASTERS - 1:0] srcmd_table;
 
@@ -146,6 +146,7 @@ rv_iopmp_regmap_wrapper #(
     .err_interface_i(err_interface),
 
     .iopmp_enabled_o(iopmp_enabled),
+    .nr_prio_entry_o(nr_prio_entry),
     .mdcfg_table_o ( mdcfg_table ),
     .srcmd_table_o ( srcmd_table ),
     //.entry_table_o ( entry_table ),
@@ -167,8 +168,7 @@ rv_iopmp_matching_logic #(
     .SID_WIDTH (SidWidth),  // The signal which connects to the SID is the user field
     .NUMBER_MDS(NumberMds),
     .NUMBER_ENTRIES(NUMBER_ENTRIES),
-    .NUMBER_MASTERS(NUMBER_MASTERS),
-    .NUMBER_ENTRY_ANALYZERS(NUMBER_ENTRY_ANALYZERS)
+    .NUMBER_MASTERS(NUMBER_MASTERS)
 ) i_rv_iopmp_matching_logic (
     // rising-edge clock
     .clk_i(clk_i),
@@ -176,6 +176,7 @@ rv_iopmp_matching_logic #(
     .rst_ni(rst_ni),
 
     .iopmp_enabled_i(iopmp_enabled),
+    .nr_prio_entry_i(nr_prio_entry),
     .mdcfg_table_i ( mdcfg_table ),
     .srcmd_table_i ( srcmd_table ),
 

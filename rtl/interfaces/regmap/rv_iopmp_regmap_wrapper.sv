@@ -37,10 +37,10 @@ module rv_iopmp_regmap_wrapper #(
 
     input rv_iopmp_pkg::error_capture_t [NUMBER_IOPMP_INSTANCES - 1 : 0] err_interface_i,
 
-    output logic iopmp_enabled_o,
+    output logic          iopmp_enabled_o,
+    output logic [15 : 0] nr_prio_entry_o,
     output rv_iopmp_pkg::mdcfg_entry_t [NUMBER_MDS     - 1:0] mdcfg_table_o,
     output rv_iopmp_pkg::srcmd_entry_t [NUMBER_MASTERS - 1:0] srcmd_table_o,
-    //output rv_iopmp_pkg::iopmp_entry_t [NUMBER_ENTRIES - 1:0] entry_table_o,
 
     output logic wsi_wire_o,
     // Config
@@ -61,6 +61,7 @@ rv_iopmp_reg_pkg::iopmp_reg2hw_t reg2hw;
 rv_iopmp_reg_pkg::iopmp_hw2reg_t hw2reg;
 
 assign iopmp_enabled_o = reg2hw.hwcfg0.enable.q;
+assign nr_prio_entry_o = reg2hw.hwcfg2.prio_entry;
 
 reg_req_t cfg_req_mod;
 reg_rsp_t cfg_rsp_mod;
