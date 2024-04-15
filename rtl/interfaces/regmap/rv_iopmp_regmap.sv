@@ -278,7 +278,7 @@ module rv_iopmp_regmap #(
 
     // to internal hardware
     .qe     (),
-    .q      (),
+    .q      (reg2hw.hwcfg0.prient_prog.q),
 
     // to register interface (read)
     .qs     (hwcfg0_prient_prog_qs)
@@ -1198,7 +1198,8 @@ module rv_iopmp_regmap #(
   assign hwcfg0_enable_wd = reg_wdata[31];
 
   /* verilator lint_off WIDTH */
-  assign hwcfg2_prio_entry_we = addr_hit[4] & reg_we & !reg_error;
+  // if reg2hw.hwcfg0.prient_prog.q is not clear, we can still program the priority from entries
+  assign hwcfg2_prio_entry_we = reg2hw.hwcfg0.prient_prog.q? addr_hit[4] & reg_we & !reg_error : '0;
   assign hwcfg2_prio_entry_wd = (reg_wdata[15:0] > NUMBER_ENTRIES - 1)? reg2hw.hwcfg2.prio_entry.q: reg_wdata[15:0];
   /* verilator lint_on WIDTH */
 

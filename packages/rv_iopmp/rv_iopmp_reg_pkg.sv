@@ -16,6 +16,9 @@ package rv_iopmp_reg_pkg;
   typedef struct packed {
     struct packed {
       logic        q;
+    } prient_prog;
+    struct packed {
+      logic        q;
     } chk_x;
     struct packed {
       logic        q;
