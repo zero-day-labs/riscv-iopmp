@@ -170,8 +170,8 @@ rv_iopmp_wsi_ig i_rv_iopmp_wsi_ig(
     // Interrupt pending bits
     .intp_i(reg2hw.err_reqinfo.ip.q),
 
-    // Interrupt vectors
-    .intv_i ({reg2hw.errreact.ire.q & reg2hw.err_reqinfo.ttype == 1, reg2hw.errreact.iwe.q & reg2hw.err_reqinfo.ttype == 2}),  // Read: 1, Write : 0
+    // Interrupt behavior
+    .intb_i ({reg2hw.errreact.ire.q & reg2hw.err_reqinfo.ttype == 1, reg2hw.errreact.iwe.q & reg2hw.err_reqinfo.ttype == 2}),  // Read: 1, Write : 0
 
     // interrupt wires
     .wsi_wire_o(wsi_wire_o)

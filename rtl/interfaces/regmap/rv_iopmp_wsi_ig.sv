@@ -17,14 +17,14 @@
 
 
 module rv_iopmp_wsi_ig(
-    // fctl.wsi
-    input  logic        wsi_en_i,
+    // interrupts enabled
+    input  logic wsi_en_i,
 
     // Interrupt pending bit
     input  logic intp_i,
 
-    // Interrupt vectors
-    input  logic [1:0] intv_i,
+    // Interrupt behavior - Selects if an interrupt occurs depending on transaction type
+    input  logic [1:0] intb_i,
 
     // interrupt wires
     output logic wsi_wire_o
@@ -34,7 +34,7 @@ module rv_iopmp_wsi_ig(
         wsi_wire_o = '0;
 
         // If WSI generation supported and enabled
-        if (wsi_en_i & intv_i > 0 & intp_i)
+        if (wsi_en_i & intb_i > 0 & intp_i)
             wsi_wire_o = 1;
     end
 
