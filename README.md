@@ -70,7 +70,7 @@ In order to create an adaptable and customizable IOPMP IP, we defined a set of d
 
 *? - Theoretical Max, not tested.*
 
-:warning: Disclaimer: When the NUMBER_SOURCES parameter is equal to 1, the IP is automatically configured in Source Enforcement (SE) mode. In this mode the RRID is ignored.
+:warning: **Disclaimer:** When the NUMBER_SOURCES parameter is equal to 1, the IP is automatically configured in Source Enforcement (SE) mode. In this mode the RRID is ignored.
 
 ## **IP Interfaces**
 
@@ -78,7 +78,7 @@ We incorporated three AXI interfaces in the IOPMP IP for system-level communicat
 
 ### **Control Interface**
 
-Slave interface used by RISC-V harts to program and monitor the memory-mapped registers of the IOPMP. These registers must be located within a naturally aligned 4-KiB region of physical address space.
+Slave interface used by RISC-V harts to program and monitor the memory-mapped registers of the IOPMP.
 
 ![control_interface_overview](doc/control_interface_overview.png)
 
@@ -86,7 +86,7 @@ Slave interface used by RISC-V harts to program and monitor the memory-mapped re
 
 The specification defines two ports for communication with the hardware: (i) Receiver Port, where the IP receives transaction requests and (ii) Initator Port, where the IP propagates the received transactions if all the checks pass. 
 
-:warning: Currently, the only supported protocol is AXI. Additionally, we extended the default AXI interface with the NSAID field defined in the AMBA AXI Specification. This 4 bit field supplies a Non-secure Access Identiﬁer (NSAID) alongside the transaction request, which we use to assess the RRID of the transaction.
+:warning: Currently, the only supported protocol is AXI. Additionally, we extended the default AXI interface with the NSAID field defined in the [AMBA AXI Specification](https://developer.arm.com/documentation/ihi0022/latest/) (Section A11.1). This 4 bit field supplies a Non-secure Access Identiﬁer (NSAID) alongside the transaction request, which we use to assess the RRID of the transaction.
 
 ![bus_interface_overview](doc/bus_interface_overview.png)
 
@@ -94,7 +94,7 @@ When the IP deems a transaction as valid, it routes the Receiver Port signals di
 
 ### **Interrupt wires**
 
-The IOPMP may be configured to generate interrupts as WSIs to request service from software. For this purpose, a set of external wires is driven by the WSI interrupt generation support module, and should be connected to a Platform-Level Interrupt Controller (e.g. PLIC/APLIC).
+The IOPMP may be configured to generate interrupts as WSIs to request service from software. For this purpose, a wire is driven by the WSI interrupt generation support module, and should be connected to a Platform-Level Interrupt Controller (e.g. PLIC/APLIC).
 
 ## **IP Integration and Validation**
 
