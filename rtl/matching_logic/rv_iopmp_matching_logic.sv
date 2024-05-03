@@ -12,7 +12,6 @@
 //
 // Author: Luís Cunha <luisccunha8@gmail.com>
 // Date: 29/02/2024
-// Acknowledges:
 //
 // Description: RISC-V IOPMP Transaction Logic.
 //              Module responsible for encapsulating all of the logic responsible for assessing transactions

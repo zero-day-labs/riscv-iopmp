@@ -1,35 +1,35 @@
-// Copyright © 2023 Manuel Rodríguez & Zero-Day Labs, Lda.
+// Copyright © 2024 Luís Cunha & Zero-Day Labs, Lda.
 // SPDX-License-Identifier: Apache-2.0 WITH SHL-2.1
 
-// Licensed under the Solderpad Hardware License v 2.1 (the “License”); 
-// you may not use this file except in compliance with the License, 
-// or, at your option, the Apache License version 2.0. 
+// Licensed under the Solderpad Hardware License v 2.1 (the “License”);
+// you may not use this file except in compliance with the License,
+// or, at your option, the Apache License version 2.0.
 // You may obtain a copy of the License at https://solderpad.org/licenses/SHL-2.1/.
-// Unless required by applicable law or agreed to in writing, 
-// any work distributed under the License is distributed on an “AS IS” BASIS, 
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. 
+// Unless required by applicable law or agreed to in writing,
+// any work distributed under the License is distributed on an “AS IS” BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and limitations under the License.
-
-/*
-    Author: Manuel Rodríguez, University of Minho <manuel.cederog@gmail.com>
-    Date:   01/06/2023
-
-    Description:    Interconnect for platform master DMA-capable devices.
-                    Used to connect multiple devices to the IOMMU TR IF.
-                    Routes responses (B and R) based on the ID of the device
-                        that initiated the transaction.
-
-    !NOTE:  The AXI ID of all slaves devices connected to the IOMMU through 
-    !       this interconnect MUST be unique. Otherwise, responses may be 
-    !       routed wrongly. 
-    !       AXI IDs must start in 1, and the index of the slave port to which
-    !       a device is connected to MUST match with the ID of the device - 1
-
-    ! Changes luisccc: Change to AXI_BUS_NSAID dma_arb_intf
-*/
+//
+// Author: Luís Cunha <luisccunha8@gmail.com>
+// Date: 14/02/2024
+//
+// Description:    Interconnect for platform master DMA-capable devices.
+//                 Used to connect multiple devices to the IOPMP TR IF.
+//                 Routes responses (B and R) based on the ID of the device
+//                     that initiated the transaction.
+//                 This module is an adaptation of the dma_arb developed
+//                 by Manuel Rodriguez.
+//
+// !NOTE:  The AXI ID of all slaves devices connected to the IOPMP through 
+// !       this arbiter MUST be unique. Otherwise, responses may be routed wrongly.
+// !
+// !       The index of the slave port a device is connected to MUST match its AXI ID.
+//
+// ! Changes luisccc: Change to AXI_BUS_NSAID dma_arb_intf
 
 module dma_arb #(
-    
+    /// AXI ID width
+    parameter int AxiIdWidth        = -1,
     /// AXI AW Channel struct type
     parameter type aw_chan_t        = logic,
     /// AXI W Channel struct type
@@ -59,7 +59,7 @@ module dma_arb #(
     input  axi_rsp_t                mst_resp_i
 );
 
-    logic [3:0] w_select_fifo;
+    logic [(AxiIdWidth-1):0] w_select_fifo;
 
     // Concatenate AR valid, ready and channel
     logic [NrDMAs-1:0]      ar_valid_group;
@@ -146,9 +146,9 @@ module dma_arb #(
     // Save AWID whenever a transaction is accepted in AW Channel.
     // While writing data to W Channel, another AW transaction may be accepted, so we need to queue the AWIDs
     fifo_v3 #(
-      .DATA_WIDTH ( 4 ),
+      .DATA_WIDTH ( AxiIdWidth ),
       // we can have a maximum of (NrDMAs) oustanding transactions
-      .DEPTH      ( NrDMAs )
+      .DEPTH      ( NrDMAs     )
     ) i_fifo_w_channel (
       .clk_i      ( clk_i           ),
       .rst_ni     ( rst_ni          ),
@@ -157,7 +157,7 @@ module dma_arb #(
       .full_o     (                 ),
       .empty_o    (                 ),
       .usage_o    (                 ),
-      .data_i     ( mst_req_o.aw.id - 1),
+      .data_i     ( mst_req_o.aw.id ),
       .push_i     ( mst_req_o.aw_valid & mst_resp_i.aw_ready ),                 // a new AW transaction was requested and granted
       .data_o     ( w_select_fifo   ),                                          // WID to select the W MUX
       .pop_i      ( mst_req_o.w_valid & mst_resp_i.w_ready & mst_req_o.w.last ) // W transaction has finished
@@ -184,7 +184,7 @@ module dma_arb #(
     ) i_stream_demux_r (
         .inp_valid_i ( mst_resp_i.r_valid ),
         .inp_ready_o ( mst_req_o.r_ready  ),
-        .oup_sel_i   ( mst_resp_i.r.id - 1),
+        .oup_sel_i   ( mst_resp_i.r.id    ),
         .oup_valid_o ( r_valid_group ),
         .oup_ready_i ( r_ready_group )
     );
@@ -195,7 +195,7 @@ module dma_arb #(
     ) i_stream_demux_b (
         .inp_valid_i ( mst_resp_i.b_valid ),
         .inp_ready_o ( mst_req_o.b_ready  ),
-        .oup_sel_i   ( mst_resp_i.b.id - 1),
+        .oup_sel_i   ( mst_resp_i.b.id    ),
         .oup_valid_o ( b_valid_group ),
         .oup_ready_i ( b_ready_group )
     );
@@ -207,6 +207,8 @@ endmodule
 
 module dma_arb_intf #(
 
+    /// AXI ID width
+    parameter int AxiIdWidth        = -1,
     /// AXI AW Channel struct type
     parameter type aw_chan_t        = logic,
     /// AXI W Channel struct type
@@ -225,11 +227,11 @@ module dma_arb_intf #(
     /// Number of Master DMA devices attached (Number of slave ports)
     parameter int unsigned NrDMAs   = 1
 ) (
-    input  logic                                                clk_i,
-    input  logic                                                rst_ni,
+    input  logic            clk_i,
+    input  logic            rst_ni,
 
-    AXI_BUS_NSAID.Slave                                        slv_ports [NrDMAs-1:0],
-    AXI_BUS_NSAID.Master                                       mst_port
+    AXI_BUS_IOMMU.Slave     slv_ports [NrDMAs-1:0],
+    AXI_BUS_IOMMU.Master    mst_port
 );
 
     axi_req_t               mst_req;
@@ -251,30 +253,31 @@ module dma_arb_intf #(
     `AXI_ASSIGN_FROM_REQ(mst_port, mst_req)
     `AXI_ASSIGN_TO_RESP(mst_resp, mst_port)
 
-    // Manually assign IOMMU-specific signals
+    // Manually assign IOPMP-specific signals
     // AW
     assign mst_port.aw_nsaid     = mst_req.aw.nsaid;
     // AR
     assign mst_port.ar_nsaid     = mst_req.ar.nsaid;
 
     dma_arb #(
-        .aw_chan_t  (aw_chan_t),
-        .w_chan_t   (w_chan_t),
-        .b_chan_t   (b_chan_t),
-        .ar_chan_t  (ar_chan_t),
-        .r_chan_t   (r_chan_t),
-        .axi_req_t  (axi_req_t),
-        .axi_rsp_t  (axi_rsp_t),
+        .AxiIdWidth     ( AxiIdWidth ),
+        .aw_chan_t      ( aw_chan_t  ),
+        .w_chan_t       ( w_chan_t   ),
+        .b_chan_t       ( b_chan_t   ),
+        .ar_chan_t      ( ar_chan_t  ),
+        .r_chan_t       ( r_chan_t   ),
+        .axi_req_t      ( axi_req_t  ),
+        .axi_rsp_t      ( axi_rsp_t  ),
 
-        .NrDMAs     (NrDMAs)
+        .NrDMAs         ( NrDMAs     )
     ) i_dma_arb (
-        .clk_i              (clk_i      ),
-        .rst_ni             (rst_ni     ),
+        .clk_i          ( clk_i      ),
+        .rst_ni         ( rst_ni     ),
 
-        .slv_reqs_i         (slv_reqs   ),
-        .slv_resps_o        (slv_resps  ),
-        .mst_req_o          (mst_req    ),
-        .mst_resp_i         (mst_resp   )
+        .slv_reqs_i     ( slv_reqs   ),
+        .slv_resps_o    ( slv_resps  ),
+        .mst_req_o      ( mst_req    ),
+        .mst_resp_i     ( mst_resp   )
     );
 
-  endmodule
+endmodule

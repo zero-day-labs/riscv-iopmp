@@ -12,7 +12,6 @@
 //
 // Author: Luís Cunha <luisccunha8@gmail.com>
 // Date: 14/02/2024
-// Acknowledges:
 //
 // Description: RISC-V IOPMP Error capture.
 //              Module responsible for logging the received errors in the regmap. It verifies if an error can be logged or not.

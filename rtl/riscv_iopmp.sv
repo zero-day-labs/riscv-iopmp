@@ -12,7 +12,6 @@
 //
 // Author: Luís Cunha <luisccunha8@gmail.com>
 // Date: 14/02/2024
-// Acknowledges:
 //
 // Description: RISC-V IOPMP TOP module.
 //              Top module for the RISCV IOPMP.

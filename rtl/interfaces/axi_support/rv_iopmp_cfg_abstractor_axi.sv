@@ -12,10 +12,11 @@
 //
 // Author: Luís Cunha <luisccunha8@gmail.com>
 // Date: 14/02/2024
-// Acknowledges: Manuel Rodriguez
 //
 // Description: Wrapper module for the RISC-V IOPMP register programming interface.
-//              Convertes between AXI and register interface.
+//              Converts between AXI and register interface.
+//              This module is an adaptation of the rv_iommu_prog_if developed
+//              by Manuel Rodriguez.
 
 `include "register_interface/assign.svh"
 

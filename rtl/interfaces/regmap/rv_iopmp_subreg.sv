@@ -12,12 +12,10 @@
 //
 // Author: Luís Cunha <luisccunha8@gmail.com>
 // Date: 14/02/2024
-// Acknowledges:
 //
 // Description: IOPMP Register field.
 //              This module was developed using LowRISC `reggen` tool.
-
-// Adapted from lowRISC, it adds the W1SS and W1CS behaviour
+//              Adapted from lowRISC, it adds the W1SS and W1CS behaviour.
 
 module rv_iopmp_subreg #(
   parameter int            DW       = 32  ,

@@ -12,9 +12,9 @@
 //
 // Author: Luís Cunha <luisccunha8@gmail.com>
 // Date: 14/02/2024
-// Acknowledges: Manuel Rodriguez
 //
 // Description: RISC-V IOPMP WSI Interrupt Generation Module.
+
 
 module rv_iopmp_wsi_ig(
     // fctl.wsi

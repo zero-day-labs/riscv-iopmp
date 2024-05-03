@@ -12,7 +12,6 @@
 //
 // Author: Luís Cunha <luisccunha8@gmail.com>
 // Date: 02/03/2024
-// Acknowledges:
 //
 // Description: Converts between different widths BRAM.
 

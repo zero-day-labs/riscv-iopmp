@@ -12,7 +12,6 @@
 //
 // Author: Luís Cunha <luisccunha8@gmail.com>
 // Date: 14/02/2024
-// Acknowledges:
 //
 // Description: IOPMP Register field internal write arbiter..
 //              This module was developed using LowRISC `reggen` tool.

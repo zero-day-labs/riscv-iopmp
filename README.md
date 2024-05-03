@@ -2,7 +2,7 @@
 
 ## License
 
-This work is licensed under the Apache-2.0 License and the Solderpad Hardware License v2.1 (Apache-2.0 WITH SHL-2.1). See [LICENSE.Solerpad](./LICENSE.Solerpad) and [LICENSE.Apache](./LICENSE.Apache) files for details.
+This work is licensed under the Solderpad Hardware License v2.1 (Apache-2.0 WITH SHL-2.1). See [LICENSE](./LICENSE) files for details.
 
 
 ## Table of Contents

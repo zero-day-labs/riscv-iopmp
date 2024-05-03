@@ -12,7 +12,6 @@
 //
 // Author: Luís Cunha <luisccunha8@gmail.com>
 // Date: 14/02/2024
-// Acknowledges:
 //
 // Description: RISC-V IOPMP Entry Analyzer.
 //              Module responsible for matching the transaction address with the stored entries,

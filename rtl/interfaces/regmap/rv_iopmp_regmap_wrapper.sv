@@ -12,7 +12,6 @@
 //
 // Author: Luís Cunha <luisccunha8@gmail.com>
 // Date: 14/02/2024
-// Acknowledges:
 //
 // Description: Wrapper for the IOPMP memory-mapped register interface module.
 //              It abstracts the downstream modules of the regmap data structures.

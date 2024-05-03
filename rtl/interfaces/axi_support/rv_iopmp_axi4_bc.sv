@@ -10,13 +10,14 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and limitations under the License.
 //
-// Author: Luís Cunha
+// Author: Luís Cunha <luisccunha8@gmail.com>
 // Date: 23/02/2024
-// Acknowledges: Manuel Rodríguez <manuel.cederog@gmail.com>
 //
 // Description: AXI4 Boundary Checker module for RISC-V IOPMP:
 //              Checks whether an AXI transaction crosses a 4-kiB address boundary,
 //              which is illegal in AXI4 transactions.
+//              This module is an adaptation of the rv_iommu_axi4_bc developed
+//              by Manuel Rodriguez.
 
 /* verilator lint_off WIDTH */
 
