@@ -1,0 +1,43 @@
+# Author: Luis Cunha <luisccunha8@gmail.com>
+# Date: 28/03/2024
+# Acknowledges:
+#
+# Description: RISC-V IOPMP Bender package descriptor.
+
+package:
+  name: riscv-iopmp
+  authors:
+    - "Luis Cunha <luisccunha8@gmail.com>"
+
+dependencies:
+  common_cells: { git: "https://github.com/pulp-platform/common_cells.git", version: 1.30.0 }
+  axi: { git: "https://github.com/pulp-platform/axi.git", version: 0.39.1-beta }
+  register_interface: { git: "git@github.com:AlSaqr-platform/register_interface.git", version:  0.3.2 }
+  tech_cells_generic: { git: "https://github.com/pulp-platform/tech_cells_generic.git", version:  0.2.9 }
+
+sources:
+  # Source files grouped in levels. Files in level 0 have no dependencies on files in this
+  # package. Files in level 1 only depend on files in level 0, files in level 2 on files in
+  # levels 1 and 0, etc. Files within a level are ordered alphabetically.
+  # Level 0
+  - packages/rv_iopmp/rv_iopmp_reg_pkg.sv
+  - rtl/interfaces/axi_support/rv_iopmp_axi4_bc.sv
+  - rtl/interfaces/axi_support/rv_iopmp_cfg_abstractor_axi.sv
+  - rtl/interfaces/regmap/dwidth_converter_bram.sv
+  - rtl/interfaces/regmap/rv_iopmp_subreg_arb.sv
+  - rtl/interfaces/regmap/rv_iopmp_wsi_ig.sv
+  # Level 1
+  - packages/rv_iopmp/rv_iopmp_pkg.sv
+  # Level 2
+  - rtl/interfaces/axi_support/rv_iopmp_data_abstractor_axi.sv
+  - rtl/interfaces/regmap/rv_iopmp_subreg.sv
+  - rtl/matching_logic/rv_iopmp_entry_analyzer.sv
+  - rtl/matching_logic/rv_iopmp_error_capture.sv
+  # Level 3
+  - rtl/interfaces/regmap/rv_iopmp_regmap.sv
+  - rtl/matching_logic/rv_iopmp_matching_logic.sv
+  # Level 4
+  - rtl/interfaces/regmap/rv_iopmp_regmap_wrapper.sv
+  # Level 5
+  - rtl/dma_arb.sv
+  - rtl/riscv_iopmp.sv
