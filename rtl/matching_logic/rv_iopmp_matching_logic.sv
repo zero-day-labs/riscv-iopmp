@@ -132,6 +132,9 @@ assign read_enable_o = (state_q != IDLE)? 1 : 0;
 // Just propragate the address to the entry array
 assign read_addr_o   = current_entry_n;
 
+// Cache entries
+assign previous_entry_addr = cached_entry_q[63:0];
+
 always_comb begin
     state_n                  = state_q;
     current_entry_n          = current_entry_q;
@@ -162,6 +165,7 @@ always_comb begin
                 sid_n                 = sid_i;
                 access_type_n         = access_type_i;
                 cached_entry_n        = 0;
+                tor_override_n        = 0;
 
                 if(transaction_en_i) begin
                     if(!iopmp_enabled_i) begin    // IOPMP Not enabled, reject
@@ -208,7 +212,7 @@ always_comb begin
                     state_n         = TOR_OP;
                 end
                 else begin
-                    previous_entry_addr = cached_entry_q[63:0];
+                    tor_override_n = 0;  // Make sure we reset this
                     unique casez({is_prio_entry, partial_entry_match, entry_match, entry_allow})
                         4'b1010, 4'b1100: state_n = ERROR; // When in prio, any match without allow is an error
 
@@ -274,6 +278,7 @@ always_ff @(posedge clk_i or negedge rst_ni) begin
         sid_q                       <= 0;
         access_type_q               <= rv_iopmp_pkg::ACCESS_NONE;
         err_type_q                  <= 0;
+        tor_override_q              <= 0;
         new_md_q                    <= 0;
         cached_entry_q              <= 0;
         first_iteration_q           <= 0;

@@ -29,17 +29,14 @@ module rv_iopmp_data_abstractor_axi #(
 
     // AXI request/response
     parameter type         axi_req_nsaid_t  = logic,
+    parameter type         axi_req_t        = logic,
     parameter type         axi_rsp_t        = logic,
     // AXI channel structs
     parameter type         axi_aw_chan_t  = logic,
     parameter type         axi_w_chan_t   = logic,
     parameter type         axi_b_chan_t   = logic,
     parameter type         axi_ar_chan_t  = logic,
-    parameter type         axi_r_chan_t   = logic,
-
-    // AXI parameters
-    // maximum number of AXI bursts outstanding at the same time
-    parameter int unsigned MaxTxns        = 32'd2
+    parameter type         axi_r_chan_t   = logic
 ) (
     input logic clk_i,
     input logic rst_ni,
@@ -48,7 +45,7 @@ module rv_iopmp_data_abstractor_axi #(
     input  axi_req_nsaid_t slv_req_i,
     output axi_rsp_t       slv_rsp_o,
     // master port
-    output axi_req_nsaid_t mst_req_o,
+    output axi_req_t       mst_req_o,
     input  axi_rsp_t       mst_rsp_i,
 
     output logic                                   transaction_en_o,
@@ -73,11 +70,9 @@ typedef enum logic [1:0] {
 
 logic enable_checking;
 logic allow_transaction;
-logic [8:0] iteration_counter_n, iteration_counter_q;
 logic transaction_allowed_n, transaction_allowed_q;
 logic aw_request_n, aw_request_q;
 logic ar_request_n, ar_request_q;
-logic ready_reg;
 
 // AxADDR
 logic [ADDR_WIDTH-1:0]             addr_n, addr_q;
@@ -100,14 +95,13 @@ logic [ADDR_WIDTH-1:0]  wrap_boundary;
 state_t state_n, state_q;
 
 // AXI request bus used to intercept AxADDR and AxVALID parameters, and connect to the demux slave port
-axi_req_nsaid_t   axi_aux_req;
+axi_req_t   axi_aux_req;
 
 // Helper wire
 assign allow_transaction = iopmp_allow_transaction_i & bc_allow_request;
 
 // Prevent another from starting when an invalidation already occurred
-//assign transaction_en_o = (state_q == MULTI_CYCLE_VER && iteration_counter_q == 0) ? 1 :
-//                            ((!allow_transaction) && valid_i)? 0: (state_q == MULTI_CYCLE_VER)? 1 : 0;
+
 assign addr_o           = addr_to_check_q;
 assign num_bytes_o      = num_bytes_q;
 assign sid_o            = (aw_request_q)? slv_req_i.aw.nsaid : slv_req_i.ar.nsaid;
@@ -115,17 +109,51 @@ assign access_type_o    = (aw_request_q)? rv_iopmp_pkg::ACCESS_WRITE : rv_iopmp_
 assign total_length_o   = total_length_q;
 
 
-always_comb begin
-    axi_aux_req = slv_req_i;
+// Connect the aux AXI bus to the translation request interface
+// AW
+assign axi_aux_req.aw_valid     = (state_q == AXI_HANDSHAKE) ? slv_req_i.aw_valid : 0;
 
-    // Do not perform the handshake, while the checking is ongoing
-    axi_aux_req.aw_valid = (state_q == AXI_HANDSHAKE) ? aw_request_q : 0;
-    axi_aux_req.ar_valid = (state_q == AXI_HANDSHAKE) ? ar_request_q : 0;
-end
+assign axi_aux_req.aw.id        = slv_req_i.aw.id;
+assign axi_aux_req.aw.addr      = slv_req_i.aw.addr;
+assign axi_aux_req.aw.len       = slv_req_i.aw.len;
+assign axi_aux_req.aw.size      = slv_req_i.aw.size;
+assign axi_aux_req.aw.burst     = slv_req_i.aw.burst;
+assign axi_aux_req.aw.lock      = slv_req_i.aw.lock;
+assign axi_aux_req.aw.cache     = slv_req_i.aw.cache;
+assign axi_aux_req.aw.prot      = slv_req_i.aw.prot;
+assign axi_aux_req.aw.qos       = slv_req_i.aw.qos;
+assign axi_aux_req.aw.region    = slv_req_i.aw.region;
+assign axi_aux_req.aw.atop      = slv_req_i.aw.atop;
+assign axi_aux_req.aw.user      = slv_req_i.aw.user;
+
+// W
+assign axi_aux_req.w            = slv_req_i.w;
+assign axi_aux_req.w_valid      = slv_req_i.w_valid;
+
+// B
+assign axi_aux_req.b_ready      = slv_req_i.b_ready;
+
+// AR
+assign axi_aux_req.ar_valid     = (state_q == AXI_HANDSHAKE) ? slv_req_i.ar_valid : 0;
+
+assign axi_aux_req.ar.id        = slv_req_i.ar.id;
+assign axi_aux_req.ar.addr      = slv_req_i.ar.addr;
+assign axi_aux_req.ar.len       = slv_req_i.ar.len;
+assign axi_aux_req.ar.size      = slv_req_i.ar.size;
+assign axi_aux_req.ar.burst     = slv_req_i.ar.burst;
+assign axi_aux_req.ar.lock      = slv_req_i.ar.lock;
+assign axi_aux_req.ar.cache     = slv_req_i.ar.cache;
+assign axi_aux_req.ar.prot      = slv_req_i.ar.prot;
+assign axi_aux_req.ar.qos       = slv_req_i.ar.qos;
+assign axi_aux_req.ar.region    = slv_req_i.ar.region;
+assign axi_aux_req.ar.user      = slv_req_i.ar.user;
+
+// R
+assign axi_aux_req.r_ready      = slv_req_i.r_ready;
+
 
 always_comb begin
     state_n                 = state_q;
-    iteration_counter_n     = iteration_counter_q;
     transaction_allowed_n   = transaction_allowed_q;
     transaction_en_o        = 0;
 
@@ -138,12 +166,12 @@ always_comb begin
     size_n            = size_q;
     burst_type_n      = burst_type_q;
     burst_length_n    = burst_length_q;
+    total_length_n    = total_length_q;
 
     case (state_q)
         IDLE: begin
             state_n = (slv_req_i.aw_valid | slv_req_i.ar_valid)? VERIFICATION : IDLE;
 
-            iteration_counter_n     = 0;
             transaction_allowed_n   = 0;
 
             // Registering this variables assures stability during operation
@@ -175,8 +203,8 @@ always_comb begin
         end
 
         // Wait for the AXI_HANDSHAKE, that happens when ax_valid is asserted to 0
-        AXI_HANDSHAKE:  state_n = (ar_request_q & !slv_req_i.ar_valid) |
-                                    (aw_request_q & !slv_req_i.aw_valid)? IDLE: AXI_HANDSHAKE;
+        AXI_HANDSHAKE:  state_n = (slv_rsp_o.ar_ready) |
+                                    (slv_rsp_o.aw_ready)? IDLE: AXI_HANDSHAKE;
 
         default: ;
     endcase
@@ -186,7 +214,6 @@ end
 always_ff @(posedge clk_i or negedge rst_ni) begin
     if (!rst_ni) begin
         state_q                 <= IDLE;
-        iteration_counter_q     <= 0;
         transaction_allowed_q   <= 0;
 
         aw_request_q            <= 0;
@@ -198,11 +225,9 @@ always_ff @(posedge clk_i or negedge rst_ni) begin
         size_q                  <= 0;
         burst_type_q            <= 0;
         burst_length_q          <= 0;
-        ready_reg               <= 0;
         total_length_q          <= 0;
     end else begin
         state_q                 <= state_n;
-        iteration_counter_q     <= iteration_counter_n;
         transaction_allowed_q   <= transaction_allowed_n;
 
         aw_request_q            <= aw_request_n;
@@ -215,7 +240,6 @@ always_ff @(posedge clk_i or negedge rst_ni) begin
         burst_type_q            <= burst_type_n;
         burst_length_q          <= burst_length_n;
         total_length_q          <= total_length_n;
-        ready_reg               <= ready_i;
     end
 end
 
@@ -241,8 +265,8 @@ rv_iopmp_axi4_bc i_rv_iopmp_axi4_bc(
 //
 // Demultiplex between authorized and unauthorized transactions
 //
-axi_req_nsaid_t error_req;
-axi_rsp_t       error_rsp;
+axi_req_t error_req;
+axi_rsp_t error_rsp;
 axi_demux #(
     .AxiIdWidth (ID_WIDTH),
     .aw_chan_t  (axi_aw_chan_t),
@@ -250,10 +274,9 @@ axi_demux #(
     .b_chan_t   (axi_b_chan_t),
     .ar_chan_t  (axi_ar_chan_t),
     .r_chan_t   (axi_r_chan_t),
-    .req_t      (axi_req_nsaid_t),
+    .req_t      (axi_req_t),
     .resp_t     (axi_rsp_t),
     .NoMstPorts (2),
-    .MaxTrans   (MaxTxns),
     .AxiLookBits(ID_WIDTH),       // TODO: not sure what this is?
     .FallThrough(1'b0),           // TODO: check what the right value is for them
     .SpillAw    (1'b0),
@@ -278,7 +301,7 @@ axi_demux #(
 //
 axi_err_slv #(
     .AxiIdWidth(ID_WIDTH),
-    .req_t(axi_req_nsaid_t),
+    .req_t(axi_req_t),
     .resp_t(axi_rsp_t),
     .Resp(axi_pkg::RESP_SLVERR),  // error generated by this slave.
     .RespWidth(DATA_WIDTH),  // data response width, gets zero extended or truncated to r.data.

@@ -50,7 +50,7 @@ module rv_iopmp_regmap_wrapper #(
     output logic en_bram_o,
     output logic [$clog2(NUMBER_ENTRIES) - 1  :0] addr_bram_o,
     output logic [128 - 1 : 0] din_bram_o,
-    output logic [(128 / 8) - 1 : 0] be_bram_o,
+    output logic [(128 + 8 - 32'd1) / 8 : 0] be_bram_o,
 
     input  logic [128 - 1 : 0] dout_bram_i
 );
@@ -71,7 +71,7 @@ assign cfg_reg_rsp_o = cfg_rsp_mod;
 // BRAM
 logic                                       bram_we;
 logic                                       bram_en;
-logic [$clog2(NUMBER_ENTRIES)  * 4 - 1:0] bram_addr;
+logic [$clog2(NUMBER_ENTRIES* 4) - 1:0]   bram_addr;
 logic [32 - 1 : 0]                         bram_din;
 logic                                    bram_ready;
 logic [32 - 1 : 0]                        bram_dout;

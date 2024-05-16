@@ -41,7 +41,7 @@ always_comb begin
     hw2reg_err_reqinfo_o.ip.d     = reg2hw_err_reqinfo_i.ip.q;
     hw2reg_err_reqinfo_o.ttype.de = 1'b0;
     hw2reg_err_reqinfo_o.ttype.d  = reg2hw_err_reqinfo_i.ttype.q;
-    hw2reg_err_reqinfo_o.ttype.de = 1'b0;
+    hw2reg_err_reqinfo_o.etype.de = 1'b0;
     hw2reg_err_reqinfo_o.etype.d  = reg2hw_err_reqinfo_i.etype.q;
 
     hw2reg_err_reqid_o.sid.de = 1'b0;

@@ -28,6 +28,7 @@ module riscv_iopmp #(
     parameter int unsigned ID_WIDTH       = 8,
     // AXI request/response
     parameter type         axi_req_nsaid_t  = logic,
+    parameter type         axi_req_t        = logic,
     parameter type         axi_rsp_t        = logic,
 
     /// AXI Full Slave request struct type
@@ -64,7 +65,7 @@ module riscv_iopmp #(
     output axi_rsp_t receiver_rsp_o,
 
     // AXI Bus Master port
-    output  axi_req_nsaid_t initiator_req_o,
+    output  axi_req_t initiator_req_o,
     input   axi_rsp_t initiator_rsp_i,
 
     output logic  wsi_wire_o
@@ -97,7 +98,7 @@ rv_iopmp_pkg::error_capture_t       [NUMBER_TL_INSTANCES - 1:0] err_interface;
 logic                                    entry_array_we[2];
 logic                                    entry_array_en[2];
 logic [$clog2(NUMBER_ENTRIES) - 1  :0] entry_array_addr[2];
-logic [(128 / 8) - 1 : 0]                entry_array_be[2];
+logic [(128 + 8 - 1) / 8 : 0]            entry_array_be[2];
 logic [128 - 1 : 0]                     entry_array_din[2];
 logic [128 - 1 : 0]                    entry_array_dout[2];
 
@@ -208,19 +209,21 @@ assign entry_array_be[1]  = '1;
 
 // port0 -> regmap_wrapper
 // port1 -> matching_logic
-tc_sram_wrapper #(
-  .NumWords(NUMBER_ENTRIES) // Number of Words in data array
+tc_sram #(
+  .NumWords(NUMBER_ENTRIES), // Number of Words in data array
+  .DataWidth(32'd128),  // Data signal width
+  .NumPorts(32'd2)    // Number of read and write ports
 ) i_entry_ram (
-  .clk_i(clk_i),      // Clock
-  .rst_ni(rst_ni),     // Asynchronous reset active low
-  // input ports
-  .req_i({entry_array_en[1], entry_array_en[0]}),      // request
-  .we_i({entry_array_we[1], entry_array_we[0]}),       // write enable
-  .addr_i({entry_array_addr[1], entry_array_addr[0]}),     // request address
-  .wdata_i({entry_array_din[1], entry_array_din[0]}),    // write data
-  .be_i({entry_array_be[1], entry_array_be[0]}),       // write byte enable
-  // output ports
-  .rdata_o({entry_array_dout[1], entry_array_dout[0]})     // read data
+    .clk_i(clk_i),      // Clock
+    .rst_ni(rst_ni),     // Asynchronous reset active low
+    // input ports
+    .req_i({entry_array_en[1], entry_array_en[0]}),      // request
+    .we_i({entry_array_we[1], entry_array_we[0]}),       // write enable
+    .addr_i({entry_array_addr[1], entry_array_addr[0]}),     // request address
+    .wdata_i({entry_array_din[1], entry_array_din[0]}),    // write data
+    .be_i({entry_array_be[1], entry_array_be[0]}),       // write byte enable
+    // output ports
+    .rdata_o({entry_array_dout[1], entry_array_dout[0]})     // read data
 );
 
 
@@ -231,6 +234,7 @@ rv_iopmp_data_abstractor_axi #(
     .ID_WIDTH(ID_WIDTH),
     // AXI request/response
     .axi_req_nsaid_t(axi_req_nsaid_t),
+    .axi_req_t(axi_req_t),
     .axi_rsp_t(axi_rsp_t),
     // AXI channel structs
     .axi_aw_chan_t(axi_aw_chan_t),

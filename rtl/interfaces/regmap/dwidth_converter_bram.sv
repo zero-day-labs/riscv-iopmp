@@ -46,7 +46,7 @@ module dwidth_converter_bram #(
     output logic [OUT_WIDTH - 1 : 0]   dout_o,
     input  logic [BRAM_DWIDTH - 1 : 0] dout_bram_i,
 
-    output logic [(BRAM_DWIDTH / 8) - 1 : 0] be_bram_o,
+    output logic [(BRAM_DWIDTH + 8 - 1) / 8 : 0] be_bram_o,
 
     // Info
     output logic                       valid_o,
@@ -62,14 +62,12 @@ logic [BitWidthShift - 1 : 0] shift_qtty_n, shift_qtty_q;
 logic [7:0] data_shift_qtty;  // For improved Verilatr compatibility
 logic [7:0] byte_en_shift_qtty;  // For improved Verilatr compatibility
 
-logic [ADDR_WIDTH-1:0] pipeline_addr_n, pipeline_addr_q;
-logic [OUT_WIDTH-1:0]  pipeline_data_n, pipeline_data_q;
-
 logic   read_snd_stage_en_n, read_snd_stage_en_q;
 
 always_comb begin
     en_bram_o = 0;
     we_bram_o = 0;
+    be_bram_o = 0;
 
     addr_bram_o = 0;
     din_bram_o  = 0;
@@ -78,8 +76,6 @@ always_comb begin
     read_snd_stage_en_n  = 0;
 
     shift_qtty_n    = shift_qtty_q;
-    pipeline_addr_n = pipeline_addr_q;
-    pipeline_data_n = pipeline_data_q;
 
     valid_o = 0;
     ready_o = 1;
@@ -120,13 +116,9 @@ end
 // Sequential process
 always_ff @(posedge clk_i or negedge rst_ni) begin
     if (!rst_ni) begin
-        pipeline_addr_q         <= 0;
-        pipeline_data_q         <= 0;
         read_snd_stage_en_q     <= 0;
         shift_qtty_q            <= 0;
     end else begin
-        pipeline_addr_q         <= pipeline_addr_n;
-        pipeline_data_q         <= pipeline_data_n;
         read_snd_stage_en_q     <= read_snd_stage_en_n;
         shift_qtty_q            <= shift_qtty_n;
     end
