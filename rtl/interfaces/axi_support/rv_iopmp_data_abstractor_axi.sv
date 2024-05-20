@@ -278,7 +278,6 @@ axi_demux #(
     .axi_resp_t (axi_rsp_t),
     .NoMstPorts (2),
     .AxiLookBits(ID_WIDTH),       // TODO: not sure what this is?
-    .FallThrough(1'b0),           // TODO: check what the right value is for them
     .SpillAw    (1'b0),
     .SpillW     (1'b0),
     .SpillB     (1'b0),
