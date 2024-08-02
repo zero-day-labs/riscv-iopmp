@@ -28,7 +28,7 @@ module lint_checks (
 	input  logic rst_ni,
 
 	// AXI Bus between IOPMP Memory IF (Mst) and System Interconnect (Slv)
-    output  lint_wrapper::req_nsaid_t  axi_iopmp_ip_req,
+    output  lint_wrapper::req_t        axi_iopmp_ip_req,
     input   lint_wrapper::resp_t       axi_iopmp_ip_rsp,
 
     // AXI Bus between System Interconnect (Mst) and iopmp Programming IF (Slv)
@@ -50,18 +50,20 @@ module lint_checks (
         .ADDR_WIDTH			( 64				        ),
         .DATA_WIDTH			( 64				        ),
         .ID_WIDTH			( lint_wrapper::IdWidth		),
+        .ID_SLV_WIDTH		( lint_wrapper::IdWidthSlv	),
         .USER_WIDTH			( 1				            ),
 
         // AXI request/response
         .axi_req_nsaid_t    ( lint_wrapper::req_nsaid_t     ),
+        .axi_req_t          ( lint_wrapper::req_t     ),
         .axi_rsp_t			( lint_wrapper::resp_t	),
         .axi_req_slv_t		( lint_wrapper::req_slv_t	),
         .axi_rsp_slv_t		( lint_wrapper::resp_slv_t),
         // AXI channel structs
-        .axi_aw_chan_t      ( lint_wrapper::aw_chan_nsaid_t  ),
+        .axi_aw_chan_t      ( lint_wrapper::aw_chan_t   ),
         .axi_w_chan_t       ( lint_wrapper::w_chan_t	),
         .axi_b_chan_t       ( lint_wrapper::b_chan_t	),
-        .axi_ar_chan_t      ( lint_wrapper::ar_chan_nsaid_t  ),
+        .axi_ar_chan_t      ( lint_wrapper::ar_chan_t   ),
         .axi_r_chan_t       ( lint_wrapper::r_chan_t	),
 
         // Register Interface parameters

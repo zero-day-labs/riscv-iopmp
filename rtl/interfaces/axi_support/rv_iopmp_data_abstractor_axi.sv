@@ -17,7 +17,6 @@
 //              Module responsible for abstracting the rest of the logic from the data bus protocol.
 //              It calculates every address the transaction passes trough and passes it to the matching logic.
 
-/* verilator lint_off WIDTH */
 module rv_iopmp_data_abstractor_axi #(
     parameter int unsigned SID_WIDTH      = 8,
     // width of data bus in bits
@@ -151,7 +150,7 @@ assign axi_aux_req.ar.user      = slv_req_i.ar.user;
 // R
 assign axi_aux_req.r_ready      = slv_req_i.r_ready;
 
-
+/* verilator lint_off WIDTH */
 always_comb begin
     state_n                 = state_q;
     transaction_allowed_n   = transaction_allowed_q;
@@ -209,6 +208,7 @@ always_comb begin
         default: ;
     endcase
 end
+/* verilator lint_on WIDTH */
 
 // Sequential part of the state machine
 always_ff @(posedge clk_i or negedge rst_ni) begin
@@ -317,4 +317,4 @@ axi_err_slv #(
 );
 
 endmodule
-/* verilator lint_on WIDTH */
+

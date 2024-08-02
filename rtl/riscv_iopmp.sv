@@ -26,6 +26,8 @@ module riscv_iopmp #(
     parameter int unsigned USER_WIDTH     = 2,
     // width of id signal
     parameter int unsigned ID_WIDTH       = 8,
+    // width of id signal
+    parameter int unsigned ID_SLV_WIDTH   = 8,
     // AXI request/response
     parameter type         axi_req_nsaid_t  = logic,
     parameter type         axi_req_t        = logic,
@@ -72,7 +74,7 @@ module riscv_iopmp #(
 );
 
 localparam int unsigned NumberMds = NUMBER_MDS;
-localparam int unsigned SidWidth  = (NUMBER_MASTERS == 1) ? 1 : $clog2(NUMBER_MASTERS);
+localparam int unsigned SidWidth  = ID_WIDTH;
 
 reg_req_t cfg_reg_req;
 reg_rsp_t cfg_reg_rsp;
@@ -98,14 +100,14 @@ rv_iopmp_pkg::error_capture_t       [NUMBER_TL_INSTANCES - 1:0] err_interface;
 logic                                    entry_array_we[2];
 logic                                    entry_array_en[2];
 logic [$clog2(NUMBER_ENTRIES) - 1  :0] entry_array_addr[2];
-logic [(128 + 8 - 1) / 8 : 0]            entry_array_be[2];
+logic [((128 + 8 - 1) / 8) - 1: 0]            entry_array_be[2];
 logic [128 - 1 : 0]                     entry_array_din[2];
 logic [128 - 1 : 0]                    entry_array_dout[2];
 
 rv_iopmp_cfg_abstractor_axi #(
     .DATA_WIDTH(DATA_WIDTH),
     .ADDR_WIDTH(ADDR_WIDTH),
-    .ID_WIDTH(ID_WIDTH),
+    .ID_WIDTH(ID_SLV_WIDTH),
     .USER_WIDTH(USER_WIDTH),
     .REG_DATA_WIDTH(32),
 

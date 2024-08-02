@@ -18,8 +18,6 @@
 // When inside a snd_stage the module is not ready to receive new data -> ready = 0
 // When output data is valid -> valid = 1
 
-/* verilator lint_off WIDTH */
-
 module dwidth_converter_bram #(
     parameter int unsigned BRAM_DWIDTH  = 128,
     parameter int unsigned OUT_WIDTH    = 32,
@@ -46,7 +44,7 @@ module dwidth_converter_bram #(
     output logic [OUT_WIDTH - 1 : 0]   dout_o,
     input  logic [BRAM_DWIDTH - 1 : 0] dout_bram_i,
 
-    output logic [(BRAM_DWIDTH + 8 - 1) / 8 : 0] be_bram_o,
+    output logic [((BRAM_DWIDTH + 8 - 1) / 8) - 1 : 0] be_bram_o,
 
     // Info
     output logic                       valid_o,
@@ -64,6 +62,7 @@ logic [7:0] byte_en_shift_qtty;  // For improved Verilatr compatibility
 
 logic   read_snd_stage_en_n, read_snd_stage_en_q;
 
+/* verilator lint_off WIDTH */
 always_comb begin
     en_bram_o = 0;
     we_bram_o = 0;
@@ -112,6 +111,7 @@ always_comb begin
             read_snd_stage_en_n = 1;
     end
 end
+/* verilator lint_on WIDTH */
 
 // Sequential process
 always_ff @(posedge clk_i or negedge rst_ni) begin
@@ -126,4 +126,3 @@ end
 
 endmodule
 
-/* verilator lint_on WIDTH */

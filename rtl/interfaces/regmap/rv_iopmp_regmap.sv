@@ -48,7 +48,7 @@ module rv_iopmp_regmap #(
   // Entry Config
   output logic bram_we_o,
   output logic bram_en_o,
-  output logic [$clog2(NUMBER_ENTRIES* 4) - 1:0] bram_addr_o,
+  output logic [$clog2(NUMBER_ENTRIES)* 4 - 1:0] bram_addr_o,
   output logic [32 - 1 : 0]  bram_din_o,
 
   input logic [32 - 1 : 0] bram_dout_i,
