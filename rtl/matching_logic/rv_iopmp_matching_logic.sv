@@ -168,9 +168,8 @@ always_comb begin
                 tor_override_n        = 0;
 
                 if(transaction_en_i) begin
-                    if(!iopmp_enabled_i) begin    // IOPMP Not enabled, reject
-                        state_n     = ERROR;
-                        err_type_n  = 0;
+                    if(!iopmp_enabled_i) begin    // IOPMP Not enabled, dont check
+                        state_n     = VALID;
                     end
                     else if (sid_i > NUMBER_MASTERS) begin
                         err_type_n  = 3'h6;
@@ -256,7 +255,6 @@ always_comb begin
             end
 
             ERROR: begin
-                err_transaction = (err_type_q != 0)? 1 : 0; // Did we come here because IOPMP off?
                 valid_o = 1;
                 allow_transaction_o = 0;
                 state_n = IDLE;
