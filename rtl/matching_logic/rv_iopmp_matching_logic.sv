@@ -255,6 +255,7 @@ always_comb begin
             end
 
             ERROR: begin
+                err_transaction = 1'b1;
                 valid_o = 1;
                 allow_transaction_o = 0;
                 state_n = IDLE;
