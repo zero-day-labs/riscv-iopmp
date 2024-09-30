@@ -101,7 +101,7 @@ The IOPMP may be configured to generate interrupts as WSIs to request service fr
 The top module of the IOPMP IP is located in [rtl/riscv_iopmp.sv](./rtl/riscv_iopmp.sv). All module parameters are specifiable when instantiating this module.
 
 ### **Integration into a CVA6-based SoC**
-We integrated the IOPMP IP into a [CVA6-based SoC](https://github.com/zero-day-labs/cva6/tree/feat/iommu) with support for the RISC-V hypervisor extension v1.0, along with a configurable number of instances of the [PULP iDMA](https://github.com/pulp-platform/iDMA) module to issue memory transfers.
+We integrated the IOPMP IP into a [CVA6-based SoC](https://github.com/zero-day-labs/cva6/tree/feat/iopmp) with support for the RISC-V hypervisor extension v1.0, along with a configurable number of instances of the [PULP iDMA](https://github.com/pulp-platform/iDMA) module to issue memory transfers.
 
 The diagram below shows the target SoC after the integration of the IOPMP IP (and required iDMA instances). To connect multiple DMA devices to the translation request port of the IOPMP, a DMA arbiter with a single master interface is used ([rtl/dma_arb.sv](./rtl/dma_arb.sv)).
 
@@ -111,7 +111,7 @@ The diagram below shows the target SoC after the integration of the IOPMP IP (an
 
 We implemented the CVA6-based SoC w/ IOPMP in a Genesys2 FPGA board using Vivado v2022.2. The IOPMP IP was functionally validated within this platform using one software setup:
 
-- A [framework with baremetal tests](https://github.com/zero-day-labs/riscv-iommu-tests) to validate the included architectural features.
+- A [framework with baremetal tests](https://github.com/luisccc/riscv-iopmp-tests) to validate the included architectural features.
 
 ## **Tools and versions**
 
