@@ -1,0 +1,570 @@
+{
+	name: "riscv_iopmp",
+    clock_primary: "clk_i",
+	reset_primary: "rst_ni",
+	bus_interfaces: [{
+	    protocol: "reg_iface",
+	    direction: "device"
+    }],
+    regwidth: "32",
+	registers: [
+        # Info Registers
+        {
+            name: "version",
+            desc: "Indicates the vendor and spec ID",
+            swaccess: "ro",
+            hwaccess: "hro",
+            fields: [
+                {
+                    bits: "23:0",
+                    name: "vendor",
+                    desc: "Indicates the vendor ID",
+                    resval: "0"
+                },
+                {
+                    bits: "31:24",
+                    name: "specver",
+                    desc: "Indicates the vendor ID",
+                    resval: "0"
+                }
+            ]
+        },
+        {
+            name: "implementation",
+            desc: "The implementation revision",
+            swaccess: "ro",
+            hwaccess: "hro",
+            fields: [
+                {
+                    bits: "31:0",
+                    name: "impid",
+                    desc: "The implementation revision",
+                    resval: "0"
+                }
+            ]
+        },
+        {
+            name: "hwcfg0",
+            desc: "Hardware Configuration register",
+            swaccess: "rw",
+            hwaccess: "hro",
+            fields: [
+                {
+                    bits: "1:0",
+                    swaccess: "ro",
+                    name: "mdcfg_fmt",
+                    desc: "Indicate the MDCFG format",
+                    resval: "0"
+                },
+                {
+                    bits: "3:2",
+                    swaccess: "ro",
+                    name: "srcmd_fmt",
+                    desc: "Indicate the SRCMD format",
+                    resval: "0"
+                },
+                {
+                    bits: "4:4",
+                    swaccess: "ro",
+                    name: "tor_en",
+                    desc: "Indicate if TOR is supported",
+                    resval: "0"
+                },
+                {
+                    bits: "5:5",
+                    swaccess: "ro",
+                    name: "sps_en",
+                    desc: "Indicate secondary permission settings is supported",
+                    resval: "0"
+                },
+                {
+                    bits: "6:6",
+                    swaccess: "ro",
+                    name: "user_cfg_en",
+                    desc: "Indicate if user customized attributes is supported",
+                    resval: "0"
+                },
+                {
+                    bits: "7:7",
+                    swaccess: "rw1c",
+                    name: "prient_prog",
+                    desc: "Indicates if HWCFG2.prio_entry is programmable",
+                    resval: "0"
+                },
+                {
+                    bits: "8:8",
+                    swaccess: "ro",
+                    name: "rrid_transl_en",
+                    desc: "Indicate if tagging with a new RRID on the initiator port is supported",
+                    resval: "0"
+                },
+                {
+                    bits: "9:9",
+                    swaccess: "rw1c",
+                    name: "rrid_transl_prog",
+                    desc: "Indicate if the field rrid_transl is programmable",
+                    resval: "0"
+                },
+                {
+                    bits: "10:10",
+                    swaccess: "ro",
+                    name: "chk_x",
+                    desc: "Indicate if the IOPMP implements the check of an instruction fetch.",
+                    resval: "0"
+                },
+                {
+                    bits: "11:11",
+                    swaccess: "ro",
+                    name: "no_x",
+                    desc: "For chk_x=1, the IOPMP with no_x=1 always fails on an instruction fetch",
+                    resval: "0"
+                },
+                {
+                    bits: "12:12",
+                    swaccess: "ro",
+                    name: "no_w",
+                    desc: "Indicate if the IOPMP always fails write accesses considered as no rule matched.",
+                    resval: "0"
+                },
+                {
+                    bits: "13:13",
+                    swaccess: "ro",
+                    name: "stall_en",
+                    desc: "Indicate if the IOPMP implements stall-related features",
+                    resval: "0"
+                },
+                {
+                    bits: "14:14",
+                    swaccess: "ro",
+                    name: "peis",
+                    desc: "Indicate if the IOPMP implements interrupt suppression per entry",
+                    resval: "0"
+                },
+                {
+                    bits: "15:15",
+                    swaccess: "ro",
+                    name: "pees",
+                    desc: "Indicate if the IOPMP implements error suppression per entry",
+                    resval: "0"
+                },
+                {
+                    bits: "16:16",
+                    swaccess: "ro",
+                    name: "mfr_en",
+                    desc: "Indicate if the IOPMP implements Multi Faults Record Extension",
+                    resval: "0"
+                },
+                {
+                    bits: "23:17",
+                    swaccess: "rw",
+                    name: "md_entry_num",
+                    desc: "Indicate if the IOPMP implements Multi Faults Record Extension",
+                    resval: "0"
+                },
+                {
+                    bits: "29:24",
+                    swaccess: "ro",
+                    name: "md_num",
+                    desc: "Indicate the supported number of MD in the instance",
+                    resval: "0"
+                },
+                {
+                    bits: "30:30",
+                    swaccess: "ro",
+                    name: "addrh_en",
+                    desc: "Indicate if ENTRY_ADDRH(i) and ERR_MSIADDRH are available.",
+                    resval: "0"
+                },
+                {
+                    bits: "31:31",
+                    swaccess: "rw1s",
+                    name: "enable",
+                    desc: "Indicate if the IOPMP checks transactions by default.",
+                    resval: "0"
+                }
+            ]
+        },
+        {
+            name: "hwcfg1",
+            desc: "Hardware Configuration register 1",
+            swaccess: "ro",
+            hwaccess: "hro",
+            fields: [
+                {
+                    bits: "15:0",
+                    name: "rrid_num",
+                    desc: "Indicate the supported number of RRID in the instance",
+                    resval: "0"
+                },
+                {
+                    bits: "31:16",
+                    name: "entry_num",
+                    desc: "Indicate the supported number of entries in the instance",
+                    resval: "0"
+                }
+            ]
+        },
+        {
+            name: "hwcfg2",
+            desc: "Hardware Configuration register 2",
+            swaccess: "rw",
+            hwaccess: "hro",
+            fields: [
+                {
+                    bits: "15:0",
+                    name: "prio_entry",
+                    desc: "Indicate the number of entries matched with priority.",
+                    resval: "0"
+                },
+                {
+                    bits: "31:16",
+                    name: "rrid_transl",
+                    desc: "The RRID tagged to outgoing transactions.",
+                    resval: "0"
+                }
+            ]
+        },
+        {
+            name: "entryoffset",
+            desc: "Entry Offset",
+            swaccess: "ro",
+            hwaccess: "hro",
+            fields: [
+                {
+                    bits: "31:0",
+                    name: "offset",
+                    desc: "Indicate the offset address of the IOPMP array from the base of an IOPMP instance",
+                    resval: "0"
+                }
+            ]
+        },
+        {skipto: "0x60"},
+        {
+            name: "err_cfg",
+            desc: "Used to configure the global error reporting behavior on an IOPMP violation.",
+            swaccess: "rw",
+            hwaccess: "hro",
+            fields: [
+                {
+                    bits: "0:0",
+                    swaccess: "rw1s",
+                    name: "lock",
+                    desc: "Lock fields to ERR_CFG register",
+                    resval: "0"
+                },
+                {
+                    bits: "1:1",
+                    name: "ie",
+                    desc: "Enable the interrupt of the IOPMP rule violation.",
+                    resval: "0"
+                },
+                {
+                    bits: "2:2",
+                    name: "rs",
+                    desc: "To suppress an error response on an IOPMP rule violation",
+                    resval: "0"
+                },
+                {
+                    bits: "3:3",
+                    name: "msi_en",
+                    desc: "Indicate if TOR is supported",
+                    resval: "0"
+                },
+                {
+                    bits: "4:4",
+                    name: "stall_violation_en",
+                    desc: "Indicates whether the IOPMP faults stalled transactions.",
+                    resval: "0"
+                },
+                {
+                    bits: "18:8",
+                    name: "msidata",
+                    desc: "The data to trigger MSI",
+                    resval: "0"
+                }
+            ]
+        },
+        {
+            name: "err_info",
+            desc: "Captures more detailed error information.",
+            swaccess: "rw",
+            hwaccess: "hrw",
+            fields: [
+                {
+                    bits: "0:0",
+                    swaccess: "rw1c",
+                    name: "v",
+                    desc: "Indicate if the illegal capture recorder has a valid content and will keep the content until the bit is cleared",
+                    resval: "0"
+                },
+                {
+                    bits: "2:1",
+                    swaccess: "ro",
+                    name: "ttype",
+                    desc: "Indicated the transaction type of the first captured violation",
+                    resval: "0"
+                },
+                {
+                    bits: "3:3",
+                    swaccess: "rw1c",
+                    name: "msi_werr",
+                    desc: "It’s asserted when the write access to trigger an IOPMPoriginated MSI has failed. ",
+                    resval: "0"
+                },
+                {
+                    bits: "7:4",
+                    swaccess: "ro",
+                    name: "etype",
+                    desc: "Indicate the type of violation",
+                    resval: "0"
+                },
+                {
+                    bits: "8:8",
+                    swaccess: "ro",
+                    name: "svc",
+                    desc: "Indicate there is a subsequent violation caught in ERR_MFR.",
+                    resval: "0"
+                }
+            ]
+        },
+        {
+            name: "err_reqaddr",
+            desc: "Indicate the errored request address of the first captured violation.",
+            swaccess: "ro",
+            hwaccess: "hwo",
+            fields: [
+                {
+                    bits: "31:0",
+                    name: "addr",
+                    desc: "Indicate the errored address[33:2]",
+                    resval: "0"
+                }
+            ]
+        },
+        {
+            name: "err_reqaddrh",
+            desc: "Indicate the errored request address of the first captured violation.",
+            swaccess: "ro",
+            hwaccess: "hwo",
+            fields: [
+                {
+                    bits: "31:0",
+                    name: "addrh",
+                    desc: "Indicate the errored address[65:34]",
+                    resval: "0"
+                }
+            ]
+        },
+        {
+            name: "err_reqid",
+            desc: "Indicates the errored RRID and entry index of the first captured violation",
+            swaccess: "ro",
+            hwaccess: "hwo",
+            fields: [
+                {
+                    bits: "15:0",
+                    name: "rrid",
+                    desc: "Indicate the errored RRID.",
+                    resval: "0"
+                },
+                {
+                    bits: "31:16",
+                    name: "eid",
+                    desc: "Indicates the index pointing to the entry that catches the violation.",
+                    resval: "0"
+                }
+            ]
+        },
+        {skipto: "0x78"},
+        {
+            name: "err_msiaddr",
+            desc: "The address to trigger MSI.",
+            swaccess: "ro",
+            hwaccess: "hwo",
+            fields: [
+                {
+                    bits: "31:0",
+                    name: "msiaddr",
+                    desc: "It contains bits 33 to 2 of the address",
+                    resval: "0"
+                }
+            ]
+        },
+        {
+            name: "err_msiaddrh",
+            desc: "The address to trigger MSI.",
+            swaccess: "ro",
+            hwaccess: "hwo",
+            fields: [
+                {
+                    bits: "31:0",
+                    name: "msiaddrh",
+                    desc: "It contains bits 65 to 34 of the address",
+                    resval: "0"
+                }
+            ]
+        },
+        {skipto: "0x800"},
+        {
+            name: "mdcfg",
+            desc: "The address to trigger MSI.",
+            swaccess: "rw",
+            hwaccess: "hro",
+            fields: [
+                {
+                    bits: "15:0",
+                    name: "t",
+                    desc: "Indicate the encoding the range of memory domain m",
+                    resval: "0"
+                }
+            ]
+        },
+        {skipto: "0x1000"},
+        {
+            name: "srcmd_en",
+            desc: "are available when the SRCMD Table format (HWCFG0.srcmd_fmt) is 0",
+            swaccess: "rw",
+            hwaccess: "hro",
+            fields: [
+                {
+                    bits: "0:0",
+                    swaccess: "rw1s",
+                    name: "lock",
+                    desc: "A sticky lock bit",
+                    resval: "0"
+                },
+                {
+                    bits: "31:1",
+                    name: "md",
+                    desc: "md[m] = 1 indicates MD m is associated with RRID s",
+                    resval: "0"
+                }
+            ]
+        },
+        {
+            name: "srcmd_enh",
+            desc: "are available when the SRCMD Table format (HWCFG0.srcmd_fmt) is 0",
+            swaccess: "rw",
+            hwaccess: "hro",
+            fields: [
+                {
+                    bits: "31:0",
+                    name: "mdh",
+                    desc: "md[m] = 1 indicates MD m+31 is associated with RRID s",
+                    resval: "0"
+                }
+            ]
+        },
+        {skipto: "0x2000"},
+        {
+            name: "entry_addr",
+            desc: "The physical address[33:2] of protected memory region.",
+            swaccess: "rw",
+            hwaccess: "hro",
+            fields: [
+                {
+                    bits: "31:0",
+                    name: "addr",
+                    desc: "The physical address[33:2]",
+                    resval: "0"
+                }
+            ]
+        },
+        {
+            name: "entry_addrh",
+            desc: "The physical address[65:34] of protected memory region.",
+            swaccess: "rw",
+            hwaccess: "hro",
+            fields: [
+                {
+                    bits: "31:0",
+                    name: "addrh",
+                    desc: "The physical address[65:34]",
+                    resval: "0"
+                }
+            ]
+        },
+        {
+            name: "entry_cfg",
+            desc: "The configuration of a protected memory region.",
+            swaccess: "rw",
+            hwaccess: "hro",
+            fields: [
+                {
+                    bits: "0:0",
+                    name: "r",
+                    desc: "The read permission to protected memory region",
+                    resval: "0"
+                },
+                {
+                    bits: "1:1",
+                    name: "w",
+                    desc: "The write permission to the protected memory region",
+                    resval: "0"
+                },
+                {
+                    bits: "2:2",
+                    name: "x",
+                    desc: "The instruction fetch permission to the protected memory region",
+                    resval: "0"
+                },
+                {
+                    bits: "4:3",
+                    name: "a",
+                    desc: "The address mode of the IOPMP entry",
+                    resval: "0"
+                },
+                {
+                    bits: "5:5",
+                    name: "sire",
+                    desc: "Suppress interrupt for an illegal read access caught by the entry",
+                    resval: "0"
+                },
+                {
+                    bits: "6:6",
+                    name: "siwe",
+                    desc: "Suppress interrupt for an illegal write access caught by the entry",
+                    resval: "0"
+                },
+                {
+                    bits: "7:7",
+                    name: "sixe",
+                    desc: "Suppress interrupt for an illegal instruction fetch caught by the entry",
+                    resval: "0"
+                },
+                {
+                    bits: "8:8",
+                    name: "sere",
+                    desc: "Suppress error for an illegal read caught by the entry",
+                    resval: "0"
+                },
+                {
+                    bits: "9:9",
+                    name: "sewe",
+                    desc: "Suppress error for an illegal write caught by the entry",
+                    resval: "0"
+                },
+                {
+                    bits: "10:10",
+                    name: "sexe",
+                    desc: "Suppress error for an illegal instruction fetch caught by the entry",
+                    resval: "0"
+                }
+            ]
+        },
+        {
+            name: "entry_user_cfg",
+            desc: "Implementation defined registers that allows users to define their own additional IOPMP check rules beside the rules defined in ENTRY_CFG.",
+            swaccess: "rw",
+            hwaccess: "hro",
+            fields: [
+                {
+                    bits: "31:0",
+                    name: "im",
+                    desc: "User customized field",
+                    resval: "0"
+                }
+            ]
+        },
+    ]
+}
