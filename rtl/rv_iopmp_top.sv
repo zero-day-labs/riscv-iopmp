@@ -90,13 +90,14 @@ module rv_iopmp_top #(
 
     checker_data_t          checker_arb_data, checker_arb_data_fifo;
     logic                   checker_arb_data_fifo_valid, checker_arb_data_fifo_ready;
+    logic                   checker_arb_data_valid, checker_arb_data_ready;
 
     error_t     checker_error;
     logic       checker_error_valid;
 
     rv_iopmp_regmap #(
         .AxiAddrWidth (ADDR_WIDTH),
-        .AxiDataWidth (32),
+        .AxiDataWidth (DATA_WIDTH),
         .AxiIdWidth   (ID_SLV_WIDTH),
         .AxiUserWidth (USER_WIDTH),
 

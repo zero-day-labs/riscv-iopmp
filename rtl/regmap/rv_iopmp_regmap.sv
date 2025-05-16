@@ -49,33 +49,29 @@ module rv_iopmp_regmap #(
     rv_iopmp_reg_pkg::rv_iopmp_reg2hw_t reg2hw;
     rv_iopmp_reg_pkg::rv_iopmp_hw2reg_t hw2reg;
 
-    assign hw2reg = '{default:'0};
+    rv_iopmp_prog_if #(
+        .ADDR_WIDTH (AxiAddrWidth),
+        .DATA_WIDTH (AxiDataWidth),
+        .ID_WIDTH   (AxiIdWidth),
+        .USER_WIDTH (AxiUserWidth),
 
-    axi_to_reg_v2 #(
-        .AxiAddrWidth (AxiAddrWidth),
-        .AxiDataWidth (AxiDataWidth),
-        .AxiIdWidth   (AxiIdWidth  ),
-        .AxiUserWidth (AxiUserWidth),
-        .RegDataWidth (32),
+        // Regbus request struct type.
+        .reg_req_t (checker_reg_req_t),
+        .reg_rsp_t (checker_reg_rsp_t),
 
-        .axi_req_t    (axi_req_t),
-        .axi_rsp_t    (axi_rsp_t),
-
-        .reg_req_t    (checker_reg_req_t),
-        .reg_rsp_t    (checker_reg_rsp_t)
-
-    ) i_axi_to_reg_v2 (
+        // AXI request/response
+        .axi_req_t (axi_req_t),
+        .axi_rsp_t (axi_rsp_t)
+    ) i_rv_iopmp_prog_if (
         .clk_i,
         .rst_ni,
 
-        .axi_req_i,
-        .axi_rsp_o,
+        // slave port
+        .slv_req_i (axi_req_i),
+        .slv_rsp_o (axi_rsp_o),
 
-        .reg_req_o      (reg_req),
-        .reg_rsp_i      (reg_rsp),
-
-        .reg_id_o       (),
-        .busy_o         ()
+        .cfg_req_o (reg_req),
+        .cfg_rsp_i (reg_rsp)
     );
 
     rv_iopmp_reg_top #(

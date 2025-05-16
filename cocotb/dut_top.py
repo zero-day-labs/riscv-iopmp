@@ -42,8 +42,8 @@ async def config_entry_msg(master, entry, addr, len, r=0, w=0, x=0):
     
     # Start trans
     cfg = (0x3 << 3) | (x << 2) | (w << 1) | r;
-    attr = axi_master.AxMsg(entry_base_addr, 2, 2, 0)
-    msg = axi_master.WMsg([cfg_addr, cfg_addr << 32, cfg], [0xF, 0xF, 0xF], 2)
+    attr = axi_master.AxMsg(entry_base_addr, 1, 3, 0)
+    msg = axi_master.WMsg([cfg_addr, cfg], [0xFF, 0xF], 1)
 
     await master.write(attr, msg)
 
@@ -51,7 +51,7 @@ async def config_mdcfg_msg(master, entry, t):
     md_base_addr = (entry * 4) + 0x800
     
     # Start trans
-    attr = axi_master.AxMsg(md_base_addr, 0, 2, 0)
+    attr = axi_master.AxMsg(md_base_addr, 0, 3, 0)
     msg = axi_master.WMsg([t], [0xF], 0)
 
     await master.write(attr, msg)
@@ -64,8 +64,8 @@ async def config_srcmd_msg(master, entry, mds):
         data |= 1 << md
 
     data = data << 1;
-    attr = axi_master.AxMsg(srcmd_base_addr, 1, 2, 0)
-    msg = axi_master.WMsg([data, data << 32], [0xF, 0xF], 1)
+    attr = axi_master.AxMsg(srcmd_base_addr, 0, 3, 0)
+    msg = axi_master.WMsg([data], [0xFF], 0)
 
     await master.write(attr, msg)
 
