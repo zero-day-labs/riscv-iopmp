@@ -349,8 +349,8 @@ module rv_iopmp_top #(
         .r_chan_t   (axi_r_chan_t),
 
         // AXI request & response structs
-        .axi_req_t      (axi_req_nsaid_t),
-        .axi_resp_t     (axi_rsp_t)
+        .req_t      (axi_req_nsaid_t),
+        .resp_t     (axi_rsp_t)
     ) i_axi_cut_error_path (
         .clk_i,
         .rst_ni,
@@ -364,7 +364,7 @@ module rv_iopmp_top #(
         .mst_resp_i (axi_block_rsp_cut)
     );
 
-    axi_err_slv #(
+    rv_iopmp_axi_err_slv #(
         .AxiIdWidth (ID_WIDTH),                    // AXI ID Width
         .axi_req_t      (axi_req_nsaid_t),                // AXI 4 request struct, with atop field
         .axi_resp_t     (axi_rsp_t),                // AXI 4 response struct

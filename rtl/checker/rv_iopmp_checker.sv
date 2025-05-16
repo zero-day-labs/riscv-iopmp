@@ -12,7 +12,7 @@ module rv_iopmp_checker #(
     parameter int N_RRID      = 1,
     parameter int N_ENTRIES   = 1,
     parameter int N_ENTRY_ANALYZERS = 1,
-    parameter int SRCMD_FMT   = 1,
+    parameter int SRCMD_FMT   = 0,
     parameter int MDCFG_FMT   = 1,
 
     //============================================================

@@ -79,7 +79,7 @@ module rv_iopmp_ax_handler #(
                 checker_valid_o = 1'b1;
 
                 checker_data_o.ttype = RW? 'h2 : 'h1; // Write
-                checker_data_o.rrid  = ax_data_q.wid;
+                checker_data_o.rrid  = ax_data_q.nsaid;
 
                 checker_data_o.address = ax_data_q.addr;
 

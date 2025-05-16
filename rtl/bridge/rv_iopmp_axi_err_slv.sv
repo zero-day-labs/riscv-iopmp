@@ -16,7 +16,7 @@
 // AXI Error Slave: This module always responds with an AXI error for transactions that are sent to
 // it.  This module optionally supports ATOPs if the `ATOPs` parameter is set.
 
-module axi_err_slv #(
+module rv_iopmp_axi_err_slv #(
   parameter int unsigned          AxiIdWidth  = 0,                    // AXI ID Width
   parameter type                  axi_req_t   = logic,                // AXI 4 request struct, with atop field
   parameter type                  axi_resp_t  = logic,                // AXI 4 response struct
@@ -52,8 +52,8 @@ module axi_err_slv #(
     axi_atop_filter #(
       .AxiIdWidth       ( AxiIdWidth  ),
       .AxiMaxWriteTxns  ( MaxTrans    ),
-      .axi_req_t        ( axi_req_t   ),
-      .axi_resp_t       ( axi_resp_t  )
+      .req_t        ( axi_req_t   ),
+      .resp_t       ( axi_resp_t  )
     ) i_atop_filter (
       .clk_i,
       .rst_ni,
