@@ -6,7 +6,10 @@ module rv_iopmp_ax_handler #(
 
     parameter type  checker_rslt_t = logic,
 
-    parameter logic RW = 0
+    parameter logic RW = 0,
+    parameter int   N_OUTGOING_TRANS = 0,
+    // DO NOT OVERWRITE THIS PARAMETER
+    parameter int   DEPTH = N_OUTGOING_TRANS/2
 ) (
     input   logic clk_i,
     input   logic rst_ni,
@@ -37,10 +40,9 @@ module rv_iopmp_ax_handler #(
     output  logic            checker_rslt_ready_o
 );
 
-    enum logic [1:0] {
+    enum logic [0:0] {
         IDLE,
-        STORE,
-        REGISTER
+        STORE
     } state_q, state_d;
 
     ax_channel_t     ax_data_d, ax_data_q;
@@ -73,10 +75,9 @@ module rv_iopmp_ax_handler #(
                 // As we do this first, the fifo automatically controls the ammount of in-flight trans
                 ax_fifo_inp_valid = 1'b1;
                 ax_fifo_inp_data  = ax_data_q;
-            end
-            REGISTER: begin
+
                 // Send data into the checker
-                checker_valid_o = 1'b1;
+                checker_valid_o = ax_fifo_inp_ready;
 
                 checker_data_o.ttype = RW? 'h2 : 'h1; // Write
                 checker_data_o.rrid  = ax_data_q.nsaid;
@@ -86,7 +87,6 @@ module rv_iopmp_ax_handler #(
                 checker_data_o.final_address = ax_data_q.addr +
                                 (axi_pkg::num_bytes(ax_data_q.size) * (ax_data_q.len + 1));
             end
-            default: ;
         endcase
     end
 
@@ -98,13 +98,7 @@ module rv_iopmp_ax_handler #(
                 if (ax_inp_valid_i) state_d = STORE;
             end
             STORE: begin
-                if (ax_fifo_inp_ready) state_d = REGISTER;
-            end
-            REGISTER: begin
-                if (checker_ready_i) state_d = IDLE;
-            end
-            default: begin
-                state_d = IDLE;
+                if (ax_fifo_inp_ready) state_d = IDLE;
             end
         endcase
     end
@@ -120,7 +114,7 @@ module rv_iopmp_ax_handler #(
     end
 
     stream_fifo #(
-        .DEPTH  (8),
+        .DEPTH  (DEPTH),
         .T      (ax_channel_t)
     ) i_wait_results_fifo (
         .clk_i,      // Clock

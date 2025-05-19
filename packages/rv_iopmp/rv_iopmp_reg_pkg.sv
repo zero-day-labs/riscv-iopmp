@@ -9,8 +9,8 @@ package rv_iopmp_reg_pkg;
   // Address widths within the block
   parameter int BlockAw = 14;
 
-  parameter int N_MDS       = 8;
-  parameter int N_RRID      = 8;
+  parameter int N_MDS       = 2;
+  parameter int N_RRID      = 32;
   parameter int N_ENTRIES   = 16;
 
   ////////////////////////////

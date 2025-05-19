@@ -34,7 +34,9 @@ module rv_iopmp_top #(
     parameter int          N_MDS       = 8,
     parameter int          N_RRID      = 8,
     parameter int          N_ENTRIES   = 16,
-    parameter int          N_ENTRY_ANALYZERS = 8
+    parameter int          N_ENTRY_ANALYZERS = 8,
+
+    parameter int          N_OUTGOING_TRANS = 8
 ) (
     input   logic clk_i,
     input   logic rst_ni,
@@ -133,7 +135,8 @@ module rv_iopmp_top #(
 
         .checker_rslt_t    (checker_rslt_t),
 
-        .RW                 (1)
+        .RW                 (1),
+        .N_OUTGOING_TRANS   (N_OUTGOING_TRANS)
     ) i_rv_iopmp_aw_handler (
         .clk_i,
         .rst_ni,
@@ -198,7 +201,8 @@ module rv_iopmp_top #(
 
         .checker_rslt_t    (checker_rslt_t),
 
-        .RW                 (0)
+        .RW                 (0),
+        .N_OUTGOING_TRANS   (N_OUTGOING_TRANS)
     ) i_rv_iopmp_ar_handler (
         .clk_i,
         .rst_ni,
@@ -258,7 +262,7 @@ module rv_iopmp_top #(
     
     stream_fifo #(
         .FALL_THROUGH (1),
-        .DEPTH  (8),
+        .DEPTH  (N_OUTGOING_TRANS),
         .T      (checker_data_t)
     ) i_checker_inp_fifo (
         .clk_i,      // Clock
@@ -281,7 +285,7 @@ module rv_iopmp_top #(
 
     stream_fifo #(
         .FALL_THROUGH (1),
-        .DEPTH  (8),
+        .DEPTH  (N_OUTGOING_TRANS),
         .T      (checker_rslt_t)
     ) i_checker_oup_fifo (
         .clk_i,      // Clock
