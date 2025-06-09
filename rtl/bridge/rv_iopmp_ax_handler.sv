@@ -40,13 +40,6 @@ module rv_iopmp_ax_handler #(
     output  logic            checker_rslt_ready_o
 );
 
-    enum logic [0:0] {
-        IDLE,
-        STORE
-    } state_q, state_d;
-
-    ax_channel_t     ax_data_d, ax_data_q;
-
     logic            ax_fifo_inp_valid, ax_fifo_inp_ready;
     ax_channel_t     ax_fifo_inp_data;
 
@@ -54,7 +47,6 @@ module rv_iopmp_ax_handler #(
     ax_channel_t     ax_fifo_oup_data;
 
     always_comb begin
-        ax_data_d = ax_data_q;
         ax_inp_ready_o = 1'b0;
 
         checker_valid_o = 1'b0;
@@ -63,53 +55,24 @@ module rv_iopmp_ax_handler #(
         ax_fifo_inp_valid = 1'b0;
         ax_fifo_inp_data  = '{default:0};
 
-        case (state_q)
-            // Cut the transaction
-            IDLE: begin
-                ax_inp_ready_o = 1'b1;
+        // Store it in the fifo waiting for the checker
+        // This can be the case because the fifo to the checker is always double the size of the one in here
+        // So, if we can store it in this fifo, we can also store it in the checker
+        if (ax_inp_valid_i) begin
+            ax_fifo_inp_valid = 1'b1;
+            ax_fifo_inp_data  = ax_inp_data_i;
+            ax_inp_ready_o    = ax_fifo_inp_ready;
 
-                if (ax_inp_valid_i) ax_data_d = ax_inp_data_i;
-            end
-            STORE: begin
-                // Store it in the fifo waiting for the checker
-                // As we do this first, the fifo automatically controls the ammount of in-flight trans
-                ax_fifo_inp_valid = 1'b1;
-                ax_fifo_inp_data  = ax_data_q;
+            // Send data into the checker
+            checker_valid_o = ax_fifo_inp_ready;
 
-                // Send data into the checker
-                checker_valid_o = ax_fifo_inp_ready;
+            checker_data_o.ttype = RW? 'h2 : 'h1; // Write
+            checker_data_o.rrid  = ax_inp_data_i.nsaid;
 
-                checker_data_o.ttype = RW? 'h2 : 'h1; // Write
-                checker_data_o.rrid  = ax_data_q.nsaid;
+            checker_data_o.address = ax_inp_data_i.addr;
 
-                checker_data_o.address = ax_data_q.addr;
-
-                checker_data_o.final_address = ax_data_q.addr +
-                                (axi_pkg::num_bytes(ax_data_q.size) * (ax_data_q.len + 1));
-            end
-        endcase
-    end
-
-    always_comb begin
-        state_d = state_q;
-
-        case (state_q)
-            IDLE: begin
-                if (ax_inp_valid_i) state_d = STORE;
-            end
-            STORE: begin
-                if (ax_fifo_inp_ready) state_d = IDLE;
-            end
-        endcase
-    end
-
-    always_ff @(posedge clk_i or negedge rst_ni) begin
-        if(~rst_ni) begin
-            state_q     <= IDLE;
-            ax_data_q   <= '{default:0};
-        end else begin
-            state_q     <= state_d;
-            ax_data_q   <= ax_data_d;
+            checker_data_o.final_address = ax_inp_data_i.addr +
+                            (axi_pkg::num_bytes(ax_inp_data_i.size) * (ax_inp_data_i.len + 1));
         end
     end
 
