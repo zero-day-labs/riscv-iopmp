@@ -318,7 +318,9 @@ module rv_iopmp_top #(
         .entry_t        (rv_iopmp_pkg::entry_t),
         .checker_data_t (checker_data_t),
         .checker_rslt_t (checker_rslt_t),
-        .error_t        (error_t)
+        .error_t        (error_t),
+        .SRCMD_FMT      (0),
+        .MDCFG_FMT      (1)
     ) i_rv_iopmp_checker (
         .clk_i,
         .rst_ni,

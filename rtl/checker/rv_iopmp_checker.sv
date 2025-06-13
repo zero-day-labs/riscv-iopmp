@@ -1,12 +1,7 @@
-//============================================================
 // Module: rv_iopmp_checker
 // Description: Entry permission checker for IOPMP mechanism.
-//============================================================
 
 module rv_iopmp_checker #(
-    //============================================================
-    // Parameters - Configuration
-    //============================================================
     parameter int ADDR_WIDTH  = 64,
     parameter int N_MDS       = 1,
     parameter int N_RRID      = 1,
@@ -15,9 +10,6 @@ module rv_iopmp_checker #(
     parameter int SRCMD_FMT   = 0,
     parameter int MDCFG_FMT   = 1,
 
-    //============================================================
-    // Parameters - Types
-    //============================================================
     parameter type mdcfg_t     = logic,       
     parameter type srcmd_t     = logic,       
     parameter type entry_t     = logic,
@@ -25,15 +17,9 @@ module rv_iopmp_checker #(
     parameter type checker_rslt_t  = logic,
     parameter type error_t         = logic
 ) (
-    //============================================================
-    // Clock and Reset
-    //============================================================
     input  logic clk_i,
     input  logic rst_ni,
 
-    //============================================================
-    // Data Flow Interfaces
-    //============================================================
     input  logic            valid_i,
     input  checker_data_t   data_i,
     output logic            ready_o,
@@ -45,9 +31,6 @@ module rv_iopmp_checker #(
     output error_t          error_o,
     output logic            error_valid_o,
 
-    //============================================================
-    // Configuration Inputs
-    //============================================================
     input mdcfg_t  [N_MDS     - 1:0] mdcfg_data_i,
     input srcmd_t  [N_RRID    - 1:0] srcmd_data_i,
     input entry_t  [N_ENTRIES - 1:0] entry_data_i,
@@ -57,10 +40,6 @@ module rv_iopmp_checker #(
 
     input logic [6:0]                md_entry_num_i
 );
-
-    //============================================================
-    // Typedefs
-    //============================================================
 
     typedef enum logic [2:0] {
         ACCESS_NONE      = 3'b000,
@@ -311,9 +290,6 @@ module rv_iopmp_checker #(
         end
     end
 
-    //============================================================
-    // Priority Match Logic
-    //============================================================
     always_comb begin
         // Default assignments
         priority_match       = 1'b0;
@@ -339,9 +315,6 @@ module rv_iopmp_checker #(
         end
     end
 
-    //============================================================
-    // Match Tracking Logic
-    //============================================================
     // TODO: With the pipeline design this no longer works as intended
     always_comb begin
         had_match = had_match_q;
@@ -361,9 +334,6 @@ module rv_iopmp_checker #(
         end
     end
 
-    //============================================================
-    // Entry Analyzer Generation
-    //============================================================
     for (genvar i = 0; i < N_ENTRY_ANALYZERS; i++) begin : gen_entry_analyzer
         logic [$clog2(N_ENTRIES)-1:0] index;
         logic [63:0] previous_entry_addr;
