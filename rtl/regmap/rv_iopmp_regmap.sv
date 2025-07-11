@@ -34,12 +34,14 @@ module rv_iopmp_regmap #(
 
     output mdcfg_t  [N_MDS     - 1:0] mdcfg_data_o,
     output srcmd_t  [N_RRID    - 1:0] srcmd_data_o,
-    output entry_t  [N_ENTRIES - 1:0] entry_data_o,
-
+    output entry_t  entry_data_o [N_ENTRIES - 1:0],
 
     input   error_t error_i,
     input   logic   error_valid_i
 );
+    logic[$clog2(N_ENTRIES) - 1: 0] entry_idx;
+    entry_t                         entry_data;
+    logic                           valid;
 
     `REG_BUS_TYPEDEF_ALL(checker_reg, logic[13:0], logic[31:0], logic[3:0])
 
@@ -49,29 +51,40 @@ module rv_iopmp_regmap #(
     rv_iopmp_reg_pkg::rv_iopmp_reg2hw_t reg2hw;
     rv_iopmp_reg_pkg::rv_iopmp_hw2reg_t hw2reg;
 
-    rv_iopmp_prog_if #(
-        .ADDR_WIDTH (AxiAddrWidth),
-        .DATA_WIDTH (AxiDataWidth),
-        .ID_WIDTH   (AxiIdWidth),
-        .USER_WIDTH (AxiUserWidth),
-
+    axi_to_reg_v2 #(
+        /// The width of the address.
+        .AxiAddrWidth (AxiAddrWidth),
+        /// The width of the data.
+        .AxiDataWidth (AxiDataWidth),
+        /// The width of the id.
+        .AxiIdWidth   (AxiIdWidth),
+        /// The width of the user signal.
+        .AxiUserWidth (AxiUserWidth),
+        /// The data width of the Reg bus
+        .RegDataWidth (32),
+        /// Whether to cut paths just before conversion to reg protocol.
+        /// This incurs O(AxiDataWidth/RegDataWidth) spill regs, but can
+        /// significantly improve (usually uncut as in-cycle) reg timing.
+        .CutMemReqs   (1),
+        .CutMemRsps   (1),
+        /// AXI request/response struct type.
+        .axi_req_t    (axi_req_t),
+        .axi_rsp_t    (axi_rsp_t),
         // Regbus request struct type.
         .reg_req_t (checker_reg_req_t),
-        .reg_rsp_t (checker_reg_rsp_t),
-
-        // AXI request/response
-        .axi_req_t (axi_req_t),
-        .axi_rsp_t (axi_rsp_t)
+        .reg_rsp_t (checker_reg_rsp_t)
     ) i_rv_iopmp_prog_if (
         .clk_i,
         .rst_ni,
 
-        // slave port
-        .slv_req_i (axi_req_i),
-        .slv_rsp_o (axi_rsp_o),
+        .axi_req_i,
+        .axi_rsp_o,
 
-        .cfg_req_o (reg_req),
-        .cfg_rsp_i (reg_rsp)
+        .reg_req_o (reg_req),
+        .reg_rsp_i (reg_rsp),
+        
+        .reg_id_o  (),
+        .busy_o    ()
     );
 
     rv_iopmp_reg_top #(
@@ -80,7 +93,9 @@ module rv_iopmp_regmap #(
 
         .N_MDS        (N_MDS),
         .N_RRID       (N_RRID),
-        .N_ENTRIES    (N_ENTRIES)
+        .N_ENTRIES    (N_ENTRIES),
+
+        .entry_t      (entry_t)
     ) i_rv_iopmp_reg_top (
         .clk_i,
         .rst_ni,
@@ -92,8 +107,26 @@ module rv_iopmp_regmap #(
         .reg2hw, // Write
         .hw2reg, // Read
 
+        .entry_idx_o  (entry_idx),
+        .entry_data_o (entry_data),
+        .valid_o      (valid),
+
         // Config
         .devmode_i (0) // If 1, explicit error return for unmapped register access
+    );
+
+    rv_iopmp_entry_handler #(
+        .entry_t    (entry_t),
+        .N_ENTRIES  (N_ENTRIES)
+    ) i_rv_iopmp_entry_handler (
+        .clk_i,
+        .rst_ni,
+        
+        .entry_idx_i    (entry_idx),
+        .entry_data_i   (entry_data),
+        .valid_i        (valid),
+
+        .entry_data_o   (entry_data_o)
     );
 
     for (genvar i = 0; i < N_MDS; i++) begin : gen_populate_mdcfg
@@ -102,13 +135,6 @@ module rv_iopmp_regmap #(
 
     for (genvar i = 0; i < N_RRID; i++) begin : gen_populate_srcmd
         assign srcmd_data_o[i].md = {reg2hw.srcmd_enh[i], reg2hw.srcmd_en[i].md};
-    end
-
-    for (genvar i = 0; i < N_ENTRIES; i++) begin : gen_populate_entry
-        assign entry_data_o[i].addrl = reg2hw.entry_addr[i];
-        assign entry_data_o[i].addrh = reg2hw.entry_addrh[i];
-
-        assign entry_data_o[i].cfg   = reg2hw.entry_cfg[i];
     end
 
     // wg_checker_error_handler #(

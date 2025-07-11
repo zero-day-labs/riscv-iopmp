@@ -43,10 +43,10 @@ package ariane_axi;
         axi_pkg::region_t region;
         axi_pkg::atop_t   atop;
         user_t            user;
-        logic[3:0]        wid;
+        logic[3:0]        nsaid;
     } aw_chan_t;
 
-    // W Channel - AXI4 doesn't define a wid
+    // W Channel - AXI4 doesn't define a nsaid
     typedef struct packed {
         data_t data;
         strb_t strb;
@@ -74,7 +74,7 @@ package ariane_axi;
         axi_pkg::qos_t    qos;
         axi_pkg::region_t region;
         user_t            user;
-        logic[3:0]        wid;
+        logic[3:0]        nsaid;
     } ar_chan_t;
 
     // R Channel

@@ -19,11 +19,6 @@ module rv_iopmp_top #(
     /// AXI Full Slave response struct type
     parameter type         axi_rsp_slv_t   = logic,
 
-    /// AXI Full Slave request struct type
-    parameter type         cfg_axi_req_t   = logic,
-    /// AXI Full Slave response struct type
-    parameter type         cfg_axi_rsp_t   = logic,
-
     // AXI channel structs
     parameter type         axi_aw_chan_t  = logic,
     parameter type         axi_w_chan_t   = logic,
@@ -42,8 +37,8 @@ module rv_iopmp_top #(
     input   logic rst_ni,
 
     // // AXI Config Slave port
-    input  cfg_axi_req_t control_req_i,
-    output cfg_axi_rsp_t control_rsp_o,
+    input  axi_req_slv_t control_req_i,
+    output axi_rsp_slv_t control_rsp_o,
 
     // AXI Bus Slave port
     input   axi_req_nsaid_t slv_req_i,
@@ -79,9 +74,9 @@ module rv_iopmp_top #(
 
     axi_req_nsaid_t axi_block_req, axi_block_req_cut;
     axi_rsp_t       axi_block_rsp, axi_block_rsp_cut;
-    rv_iopmp_pkg::mdcfg_t [N_MDS - 1:0] mdcfg_data;
+    rv_iopmp_pkg::mdcfg_t [N_MDS - 1 :0] mdcfg_data;
     rv_iopmp_pkg::srcmd_t [N_RRID - 1:0] srcmd_data;
-    rv_iopmp_pkg::entry_t [N_ENTRIES - 1:0] entry_data;
+    rv_iopmp_pkg::entry_t entry_data[N_ENTRIES - 1:0];
 
     checker_rslt_t  checker_rslt_2_fifo, checker_rslt;
     logic           checker_rslt_2_fifo_valid, checker_rslt_valid, checker_rslt_2_aw_valid, checker_rslt_2_w_valid, checker_rslt_2_ar_valid;
@@ -90,8 +85,8 @@ module rv_iopmp_top #(
     checker_data_t [1:0]    checker_data;
     logic [1:0]             checker_data_valid, checker_data_ready;
 
-    checker_data_t          checker_arb_data, checker_arb_data_fifo;
-    logic                   checker_arb_data_fifo_valid, checker_arb_data_fifo_ready;
+    checker_data_t          checker_arb_data, checker_arb_data_sr;
+    logic                   checker_arb_data_sr_valid, checker_arb_data_sr_ready;
     logic                   checker_arb_data_valid, checker_arb_data_ready;
 
     error_t     checker_error;
@@ -103,8 +98,8 @@ module rv_iopmp_top #(
         .AxiIdWidth   (ID_SLV_WIDTH),
         .AxiUserWidth (USER_WIDTH),
 
-        .axi_req_t    (cfg_axi_req_t),
-        .axi_rsp_t    (cfg_axi_rsp_t),
+        .axi_req_t    (axi_req_slv_t),
+        .axi_rsp_t    (axi_rsp_slv_t),
 
         .mdcfg_t      (rv_iopmp_pkg::mdcfg_t),
         .srcmd_t      (rv_iopmp_pkg::srcmd_t),
@@ -113,7 +108,7 @@ module rv_iopmp_top #(
         
         .N_MDS        (N_MDS),
         .N_RRID       (N_RRID),
-        .N_ENTRIES    (N_ENTRIES)
+        .N_ENTRIES    (N_ENTRIES)    
     ) i_rv_iopmp_regmap (
         .clk_i,
         .rst_ni,
@@ -260,31 +255,25 @@ module rv_iopmp_top #(
         .oup_ready_i    (checker_arb_data_ready)
     );
     
-    stream_fifo #(
-        .FALL_THROUGH (1),
-        .DEPTH  (N_OUTGOING_TRANS),
-        .T      (checker_data_t)
-    ) i_checker_inp_fifo (
+    // Break all the paths, but introduce one cycle
+    spill_register #(
+        .T      (checker_data_t),
+        .Bypass (1'b0)     // make this spill register transparent
+    ) i_inp_spill_register (
         .clk_i,      // Clock
         .rst_ni,     // Asynchronous reset active low
 
-        .flush_i    (1'b0),    // flush the fifo
-        .testmode_i (1'b0),    // test_mode to bypass clock gating
-        .usage_o    (),        // fill pointer
+        .valid_i    (checker_arb_data_valid),
+        .ready_o    (checker_arb_data_ready),
+        .data_i     (checker_arb_data),
 
-        // input interface
-        .data_i         (checker_arb_data),     // data to push into the fifo
-        .valid_i        (checker_arb_data_valid),    // input data valid
-        .ready_o        (checker_arb_data_ready),    // fifo is not full
-
-        // output interface
-        .data_o         (checker_arb_data_fifo),     // output data
-        .valid_o        (checker_arb_data_fifo_valid),    // fifo is not empty
-        .ready_i        (checker_arb_data_fifo_ready)     // pop head from fifo
+        .valid_o    (checker_arb_data_sr_valid),
+        .ready_i    (checker_arb_data_sr_ready),
+        .data_o     (checker_arb_data_sr)
     );
 
     stream_fifo #(
-        .FALL_THROUGH (1),
+        .FALL_THROUGH (0),
         .DEPTH  (N_OUTGOING_TRANS),
         .T      (checker_rslt_t)
     ) i_checker_oup_fifo (
@@ -316,6 +305,7 @@ module rv_iopmp_top #(
         .mdcfg_t        (rv_iopmp_pkg::mdcfg_t),
         .srcmd_t        (rv_iopmp_pkg::srcmd_t),
         .entry_t        (rv_iopmp_pkg::entry_t),
+        .base_end_addr_t(rv_iopmp_pkg::base_end_addr_t),
         .checker_data_t (checker_data_t),
         .checker_rslt_t (checker_rslt_t),
         .error_t        (error_t),
@@ -325,9 +315,9 @@ module rv_iopmp_top #(
         .clk_i,
         .rst_ni,
 
-        .valid_i    (checker_arb_data_fifo_valid),
-        .data_i     (checker_arb_data_fifo),
-        .ready_o    (checker_arb_data_fifo_ready),
+        .valid_i    (checker_arb_data_sr_valid),
+        .data_i     (checker_arb_data_sr),
+        .ready_o    (checker_arb_data_sr_ready),
 
         .rslt_valid_o   (checker_rslt_2_fifo_valid),
         .rslt_o         (checker_rslt_2_fifo),
@@ -355,8 +345,8 @@ module rv_iopmp_top #(
         .r_chan_t   (axi_r_chan_t),
 
         // AXI request & response structs
-        .req_t      (axi_req_nsaid_t),
-        .resp_t     (axi_rsp_t)
+        .axi_req_t      (axi_req_nsaid_t),
+        .axi_resp_t     (axi_rsp_t)
     ) i_axi_cut_error_path (
         .clk_i,
         .rst_ni,

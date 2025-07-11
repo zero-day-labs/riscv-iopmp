@@ -46,14 +46,17 @@ module rv_iopmp_ax_handler #(
     logic            ax_fifo_oup_valid, ax_fifo_oup_ready;
     ax_channel_t     ax_fifo_oup_data;
 
+    logic            checker_fifo_valid, checker_fifo_ready;
+    checker_data_t   checker_fifo_data;
+
     always_comb begin
         ax_inp_ready_o = 1'b0;
 
-        checker_valid_o = 1'b0;
-        checker_data_o  = '{default:0};
-
         ax_fifo_inp_valid = 1'b0;
         ax_fifo_inp_data  = '{default:0};
+
+        checker_fifo_valid = 1'b0;
+        checker_fifo_data  = '{default:0};
 
         // Store it in the fifo waiting for the checker
         // This can be the case because the fifo to the checker is always double the size of the one in here
@@ -64,17 +67,40 @@ module rv_iopmp_ax_handler #(
             ax_inp_ready_o    = ax_fifo_inp_ready;
 
             // Send data into the checker
-            checker_valid_o = ax_fifo_inp_ready;
+            checker_fifo_valid = ax_fifo_inp_ready;
 
-            checker_data_o.ttype = RW? 'h2 : 'h1; // Write
-            checker_data_o.rrid  = ax_inp_data_i.nsaid;
+            checker_fifo_data.ttype = RW? 'h2 : 'h1; // Write
+            checker_fifo_data.rrid  = ax_inp_data_i.nsaid;
 
-            checker_data_o.address = ax_inp_data_i.addr;
+            checker_fifo_data.address = ax_inp_data_i.addr;
 
-            checker_data_o.final_address = ax_inp_data_i.addr +
+            checker_fifo_data.final_address = ax_inp_data_i.addr +
                             (axi_pkg::num_bytes(ax_inp_data_i.size) * (ax_inp_data_i.len + 1));
         end
     end
+
+    stream_fifo #(
+        .FALL_THROUGH (0),
+        .DEPTH  (DEPTH),
+        .T      (checker_data_t)
+    ) i_checker_data_fifo (
+        .clk_i,      // Clock
+        .rst_ni,     // Asynchronous reset active low
+
+        .flush_i    (1'b0),    // flush the fifo
+        .testmode_i (1'b0),    // test_mode to bypass clock gating
+        .usage_o    (),        // fill pointer
+
+        // input interface
+        .data_i         (checker_fifo_data),     // data to push into the fifo
+        .valid_i        (checker_fifo_valid),    // input data valid
+        .ready_o        ( ),    // fifo is not full
+
+        // output interface
+        .data_o         (checker_data_o ),     // output data
+        .valid_o        (checker_valid_o),    // fifo is not empty
+        .ready_i        (checker_ready_i)     // pop head from fifo
+    );
 
     stream_fifo #(
         .DEPTH  (DEPTH),

@@ -19,105 +19,52 @@
 
 /* verilator lint_off WIDTH */
 module rv_iopmp_entry_analyzer #(
+    parameter type          base_end_addr_t = logic,
     parameter int unsigned ADDR_WIDTH     = 64
 ) (
     input logic [ADDR_WIDTH - 1: 0]         addr_to_check_i,
     input logic [ADDR_WIDTH - 1: 0]         final_addr_to_check_i,
 
-    input logic [31: 0]                     addr_i,
-    input logic [31: 0]                     addrh_i,
-    input logic [31: 0]                     previous_entry_addr_i,
-    input logic [31: 0]                     previous_entry_addrh_i,
-    input logic [1:0]                       mode_i,
+    input base_end_addr_t                   addr_i,
+    input logic [63: 0]                     previous_entry_addr_i,
+    input rv_iopmp_reg_pkg::mode_t          mode_i,
 
     output logic                            match_o,
     output logic                            partial_match_o
 );
 
-typedef enum logic [1:0] {
-    OFF   = 2'b00,
-    TOR   = 2'b01,
-    NA4   = 2'b10,
-    NAPOT = 2'b11
-} mode_t;
+    always_comb begin
+        match_o = 0;
+        partial_match_o = 0;
 
-logic [63:0] entry_addr;
-logic [63:0] previous_entry_addr;
-
-logic [65:0] entry_addr_n; // This has two plus bits
-logic [$clog2(66) - 1:0] trail_ones;
-
-// Concatenate entry addresses
-assign entry_addr = {addrh_i, addr_i};
-assign previous_entry_addr = {previous_entry_addrh_i, previous_entry_addr_i};
-
-// Negate, for use in the leading zero counter - Refer to PMP enconding
-assign entry_addr_n = {2'b11, ~entry_addr};
-
-logic [65 - 1:0] base;
-logic [65    :0] final_address; // The supported addresses can reach 2^(65) 
-logic [65 - 1:0] mask;
-logic [$clog2(66) :0] size; // Can be trail ones + 3
-
-// Leading zero counter - Refer to PMP enconding
-lzc #(
-    .WIDTH(66),
-    .MODE (1'b0)
-) i_lzc (
-    .in_i   (entry_addr_n),
-    .cnt_o  (trail_ones),
-    .empty_o()
-);
-
-always_comb begin
-    match_o = 0;
-    partial_match_o = 0;
-
-    base = 0;
-    final_address = 0;
-    mask = 0;
-    size = 0;
-
-    case (mode_i)
-        TOR: begin
-            // check that the requested address is in between the two
-            // configuration addresses
-            if (addr_to_check_i >= ({2'b0, previous_entry_addr} << 2) && addr_to_check_i < ({2'b0, entry_addr} << 2)) begin
-                // If every address is allowed, continue
-                if (final_addr_to_check_i >= ({2'b0, previous_entry_addr} << 2) && final_addr_to_check_i < ({2'b0, entry_addr} << 2)) begin
-                    match_o = 1'b1;
-                end else begin
-                    partial_match_o = 1'b1;
+        case (mode_i)
+            rv_iopmp_reg_pkg::TOR: begin
+                // check that the requested address is in between the two
+                // configuration addresses
+                if (addr_to_check_i >= previous_entry_addr_i && addr_to_check_i < addr_i.base_addr) begin
+                    // If every address is allowed, continue
+                    if (final_addr_to_check_i >= previous_entry_addr_i && final_addr_to_check_i < addr_i.base_addr) begin
+                        match_o = 1'b1;
+                    end else begin
+                        partial_match_o = 1'b1;
+                    end
                 end
             end
-        end
-        NA4, NAPOT: begin
-            if (mode_i == NA4)
-                size = 2;
-            else begin
-                // use the extracted trailing ones
-                size = trail_ones + 3;
-            end
-
-            // Mask that allows the extraction of the base address for the entry and transaction
-            mask = '1 << size;
-            base = ({2'b0, entry_addr} << 2) & mask; // Calculate base to compare with lower addr_to_check
-            final_address = (base + (2 << (size - 1))) - 1; // Calculate final permited address for this entry
-
-            // If both base addresses are equal, match
-            if((addr_to_check_i & mask) == base) begin
-                // The final address to check fits in this entry? Full match
-                if(final_addr_to_check_i <= final_address) begin
-                    match_o = 1;
-                end else begin
-                    partial_match_o = 1;
+            rv_iopmp_reg_pkg::NA4, rv_iopmp_reg_pkg::NAPOT: begin
+                // If both base addresses are equal, match
+                if (addr_to_check_i >= addr_i.base_addr && addr_to_check_i < addr_i.end_addr) begin
+                    // The final address to check fits in this entry? Full match
+                    if(final_addr_to_check_i <= addr_i.end_addr) begin
+                        match_o = 1;
+                    end else begin
+                        partial_match_o = 1;
+                    end
                 end
             end
-        end
-        OFF: match_o = 1'b0;
-        default:    match_o = 0;
-    endcase
-end
+            rv_iopmp_reg_pkg::OFF: match_o = 1'b0;
+            default:    match_o = 0;
+        endcase
+    end
 
 endmodule
 /* verilator lint_on WIDTH */

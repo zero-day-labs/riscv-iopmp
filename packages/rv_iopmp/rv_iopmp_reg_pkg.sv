@@ -10,8 +10,8 @@ package rv_iopmp_reg_pkg;
   parameter int BlockAw = 14;
 
   parameter int N_MDS       = 8;
-  parameter int N_RRID      = 32;
-  parameter int N_ENTRIES   = 8;
+  parameter int N_RRID      = 8;
+  parameter int N_ENTRIES   = 16;
 
   ////////////////////////////
   // Typedefs for registers //
@@ -365,6 +365,13 @@ package rv_iopmp_reg_pkg;
     4'b 0011, // index[18] RV_IOPMP_ENTRY_CFG
     4'b 1111  // index[19] RV_IOPMP_ENTRY_USER_CFG
   };
+
+  typedef enum logic [1:0] {
+    OFF   = 2'b00,
+    TOR   = 2'b01,
+    NA4   = 2'b10,
+    NAPOT = 2'b11
+  } mode_t;
 
 endpackage
 

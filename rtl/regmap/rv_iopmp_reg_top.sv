@@ -14,7 +14,9 @@ module rv_iopmp_reg_top #(
 
   parameter int N_MDS     = 1,
   parameter int N_RRID    = 1,
-  parameter int N_ENTRIES = 1
+  parameter int N_ENTRIES = 1,
+
+  parameter type entry_t = logic
 ) (
   input logic clk_i,
   input logic rst_ni,
@@ -24,6 +26,9 @@ module rv_iopmp_reg_top #(
   output rv_iopmp_reg_pkg::rv_iopmp_reg2hw_t reg2hw, // Write
   input  rv_iopmp_reg_pkg::rv_iopmp_hw2reg_t hw2reg, // Read
 
+  output  logic[$clog2(N_ENTRIES) - 1: 0] entry_idx_o,
+  output  entry_t                         entry_data_o,
+  output  logic                           valid_o,
 
   // Config
   input devmode_i // If 1, explicit error return for unmapped register access
@@ -42,6 +47,13 @@ module rv_iopmp_reg_top #(
   localparam int ADDR_HIT_ENTRY_CFG_OFFSET  = ADDR_HIT_ENTRY_ADDRH_OFFSET + N_ENTRIES;
   localparam int ADDR_HIT_ENTRY_USER_CFG_OFFSET = ADDR_HIT_ENTRY_CFG_OFFSET + N_ENTRIES;
   localparam int ADDR_HIT_SIZE              = ADDR_HIT_ENTRY_USER_CFG_OFFSET + N_ENTRIES;
+
+  function automatic logic is_entry_addr_hit(int i);
+      return  addr_hit[ADDR_HIT_ENTRY_ADDR_OFFSET + i] ||
+              addr_hit[ADDR_HIT_ENTRY_ADDRH_OFFSET + i] ||
+              addr_hit[ADDR_HIT_ENTRY_CFG_OFFSET + i];
+  endfunction
+
 
   // register signals
   logic           reg_we;
@@ -2144,6 +2156,57 @@ module rv_iopmp_reg_top #(
     endcase
   end
 
+  logic [$clog2(N_ENTRIES) - 1 : 0] entry_idx_d, entry_idx_q, entry_idx2_q;
+  logic  rcfg_entry, rcfg_entry_q, rcfg_entry2_q;
+  entry_t entry_data_q, entry_data_d;
+
+  assign rcfg_entry = |entry_addr_we || |entry_addrh_we || 
+                      |entry_cfg_r_we || |entry_cfg_w_we || |entry_cfg_x_we ||
+                      |entry_cfg_a_we || |entry_cfg_sire_we || |entry_cfg_siwe_we ||
+                      |entry_cfg_sixe_we || |entry_cfg_sere_we || |entry_cfg_sewe_we;
+
+  always_comb begin
+    entry_idx_d = '0;
+
+    // Assess which entry to reconfigure
+    if ( rcfg_entry ) begin
+      for(int i = 1; i < N_ENTRIES - 1; i++) begin
+        if (is_entry_addr_hit(i)) begin
+          entry_idx_d = i;
+          break;
+        end
+      end
+    end
+  end
+
+  always_ff @(posedge clk_i or negedge rst_ni) begin
+    if (!rst_ni) begin
+      entry_idx_q <= 1;
+      entry_idx2_q <= 1;
+
+      rcfg_entry_q <= 1'b0;
+      rcfg_entry2_q <= 1'b0;
+    end else begin
+      entry_idx_q <= entry_idx_d;
+      entry_idx2_q <= entry_idx_q;
+
+      rcfg_entry_q <= rcfg_entry;
+      rcfg_entry2_q <= rcfg_entry_q;
+
+      if(rcfg_entry_q) begin
+        entry_data_q = entry_data_d;
+      end
+    end
+  end
+  
+  assign valid_o = rcfg_entry2_q;
+  assign entry_idx_o = entry_idx2_q;
+  assign entry_data_o = entry_data_q;
+
+  assign entry_data_d.addr.base_addr = {reg2hw.entry_addrh[entry_idx_q], reg2hw.entry_addr[entry_idx_q]};
+  assign entry_data_d.addr.end_addr  = '0;
+  assign entry_data_d.cfg            = reg2hw.entry_cfg[entry_idx_q];
+
   // Unused signal tieoff
 
   // wdata / byte enable are not always fully used
@@ -2157,55 +2220,3 @@ module rv_iopmp_reg_top #(
   `ASSERT(en2addrHit, (reg_we || reg_re) |-> $onehot0(addr_hit))
 
 endmodule
-
-module rv_iopmp_reg_top_intf
-#(
-  parameter int AW = 14,
-  localparam int DW = 32
-) (
-  input logic clk_i,
-  input logic rst_ni,
-  REG_BUS.in  regbus_slave,
-  // To HW
-  output rv_iopmp_reg_pkg::rv_iopmp_reg2hw_t reg2hw, // Write
-  input  rv_iopmp_reg_pkg::rv_iopmp_hw2reg_t hw2reg, // Read
-  // Config
-  input devmode_i // If 1, explicit error return for unmapped register access
-);
- localparam int unsigned STRB_WIDTH = DW/8;
-
-`include "register_interface/typedef.svh"
-`include "register_interface/assign.svh"
-
-  // Define structs for reg_bus
-  typedef logic [AW-1:0] addr_t;
-  typedef logic [DW-1:0] data_t;
-  typedef logic [STRB_WIDTH-1:0] strb_t;
-  `REG_BUS_TYPEDEF_ALL(reg_bus, addr_t, data_t, strb_t)
-
-  reg_bus_req_t s_reg_req;
-  reg_bus_rsp_t s_reg_rsp;
-  
-  // Assign SV interface to structs
-  `REG_BUS_ASSIGN_TO_REQ(s_reg_req, regbus_slave)
-  `REG_BUS_ASSIGN_FROM_RSP(regbus_slave, s_reg_rsp)
-
-  
-
-  rv_iopmp_reg_top #(
-    .reg_req_t(reg_bus_req_t),
-    .reg_rsp_t(reg_bus_rsp_t),
-    .AW(AW)
-  ) i_regs (
-    .clk_i,
-    .rst_ni,
-    .reg_req_i(s_reg_req),
-    .reg_rsp_o(s_reg_rsp),
-    .reg2hw, // Write
-    .hw2reg, // Read
-    .devmode_i
-  );
-  
-endmodule
-
-

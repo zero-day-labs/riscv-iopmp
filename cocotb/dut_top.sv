@@ -128,10 +128,8 @@ module dut_top #(
     ariane_axi::resp_t  slv_rsp, mst_rsp;
     ariane_axi::req_t   slv_req, mst_req;
 
-    `AXI_TYPEDEF_ALL(iopmp_config, logic[63:0], ariane_axi::id_t, logic[31:0], logic[3:0], ariane_axi::user_t)
-
-    iopmp_config_req_t  config_req;
-    iopmp_config_resp_t config_rsp;
+    ariane_axi::req_t  config_req;
+    ariane_axi::resp_t config_rsp;
 
     always_comb begin
         // config_rsp = '{default:0};
@@ -189,7 +187,7 @@ module dut_top #(
         slv_req.aw.addr  = slv_aw_addr_i;
         slv_req.aw.len   = slv_aw_len_i;
         slv_req.aw.size  = slv_aw_size_i;
-        slv_req.aw.wid   = slv_aw_wid_i;
+        slv_req.aw.nsaid   = slv_aw_wid_i;
         slv_req.aw.id    = slv_aw_id_i;
 
         slv_req.w_valid  = slv_w_valid_i;
@@ -201,7 +199,7 @@ module dut_top #(
         slv_req.ar.addr  = slv_ar_addr_i;
         slv_req.ar.len   = slv_ar_len_i;
         slv_req.ar.size  = slv_ar_size_i;
-        slv_req.ar.wid   = slv_ar_wid_i;
+        slv_req.ar.nsaid   = slv_ar_wid_i;
         slv_req.ar.id    = slv_ar_id_i;
         
         slv_req.b_ready  = slv_b_ready_i;
@@ -229,7 +227,7 @@ module dut_top #(
         mst_aw_addr_o   = mst_req.aw.addr ;
         mst_aw_len_o    = mst_req.aw.len  ;
         mst_aw_size_o   = mst_req.aw.size ;
-        mst_aw_wid_o    = mst_req.aw.wid  ;
+        mst_aw_wid_o    = mst_req.aw.nsaid  ;
         mst_aw_id_o     = mst_req.aw.id   ;
 
         mst_w_valid_o   = mst_req.w_valid;
@@ -241,7 +239,7 @@ module dut_top #(
         mst_ar_addr_o   = mst_req.ar.addr ;
         mst_ar_len_o    = mst_req.ar.len  ;
         mst_ar_size_o   = mst_req.ar.size ;
-        mst_ar_wid_o    = mst_req.ar.wid  ;
+        mst_ar_wid_o    = mst_req.ar.nsaid  ;
         mst_ar_id_o     = mst_req.ar.id   ;
         
         mst_b_ready_o   = mst_req.b_ready;
@@ -260,9 +258,6 @@ module dut_top #(
 
         .axi_req_slv_t      (ariane_axi::req_t ),
         .axi_rsp_slv_t      (ariane_axi::resp_t),
-
-        .cfg_axi_req_t      (iopmp_config_req_t),
-        .cfg_axi_rsp_t      (iopmp_config_resp_t),
 
         .axi_aw_chan_t      (ariane_axi::aw_chan_t ),
         .axi_w_chan_t       (ariane_axi::w_chan_t),

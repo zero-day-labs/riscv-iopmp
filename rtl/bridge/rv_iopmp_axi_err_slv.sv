@@ -52,8 +52,8 @@ module rv_iopmp_axi_err_slv #(
     axi_atop_filter #(
       .AxiIdWidth       ( AxiIdWidth  ),
       .AxiMaxWriteTxns  ( MaxTrans    ),
-      .req_t        ( axi_req_t   ),
-      .resp_t       ( axi_resp_t  )
+      .axi_req_t        ( axi_req_t   ),
+      .axi_resp_t       ( axi_resp_t  )
     ) i_atop_filter (
       .clk_i,
       .rst_ni,

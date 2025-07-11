@@ -7,12 +7,13 @@ module rv_iopmp_checker #(
     parameter int N_RRID      = 1,
     parameter int N_ENTRIES   = 1,
     parameter int N_ENTRY_ANALYZERS = 1,
-    parameter int SRCMD_FMT   = 0,
+    parameter int SRCMD_FMT   = 1,
     parameter int MDCFG_FMT   = 1,
 
     parameter type mdcfg_t     = logic,       
     parameter type srcmd_t     = logic,       
     parameter type entry_t     = logic,
+    parameter type base_end_addr_t = logic,
     parameter type checker_data_t  = logic,
     parameter type checker_rslt_t  = logic,
     parameter type error_t         = logic
@@ -31,9 +32,9 @@ module rv_iopmp_checker #(
     output error_t          error_o,
     output logic            error_valid_o,
 
-    input mdcfg_t  [N_MDS     - 1:0] mdcfg_data_i,
-    input srcmd_t  [N_RRID    - 1:0] srcmd_data_i,
-    input entry_t  [N_ENTRIES - 1:0] entry_data_i,
+    input mdcfg_t [N_MDS     - 1:0] mdcfg_data_i,
+    input srcmd_t [N_RRID    - 1:0] srcmd_data_i,
+    input entry_t           entry_data_i[N_ENTRIES - 1:0],
 
     input logic [$clog2(N_ENTRIES) - 1:0] prio_entry_i,
     input logic                           global_error_suppressed_i,
@@ -56,7 +57,7 @@ module rv_iopmp_checker #(
         ERR_NO_MATCH        = 8'h05
     } error_code_t;
 
-    typedef struct packed {
+    typedef struct packed{
         checker_data_t data_to_analyze;
         logic error;
         error_t error_data;
@@ -75,7 +76,6 @@ module rv_iopmp_checker #(
     logic [N_ENTRY_ANALYZERS-1:0] allow_array;
     logic [N_ENTRY_ANALYZERS-1:0] error_supr_array;
 
-    logic get_next_md;
     logic priority_match, priority_error_supr, priority_partial_hit;
     logic last_md, entries_left_md, had_match, had_match_q;
     logic [15:0] match_eid, match_eid_q;
@@ -90,7 +90,7 @@ module rv_iopmp_checker #(
 
     // Compute MD enable mask based on current FSM state
     if (SRCMD_FMT == 0) begin
-        assign srcmd_1_stage = srcmd_data_i[payload_1_to_2_stage.data_to_analyze.rrid].md;
+        assign srcmd_1_stage = srcmd_data_i[data_i.rrid].md;
         assign srcmd_2_stage = srcmd_data_i[payload_2nd_stage.data_to_analyze.rrid].md;
     end else if (SRCMD_FMT == 1) begin
         // Hardwire to zero, as the MD is selected by the RRID
@@ -185,10 +185,10 @@ module rv_iopmp_checker #(
     assign entries_left_md = (n_entries_md > N_ENTRY_ANALYZERS) &&
                              ((n_entries_offset_q + N_ENTRY_ANALYZERS) < n_entries_md);
 
+    assign last_md = next_md == payload_2nd_stage.current_md;
     always_comb begin
         payload_2nd_stage_stall_d = payload_2nd_stage;
-        last_md = 1'b0;
-        next_md = 1'b0;
+        next_md = payload_2nd_stage.current_md;
 
         if (SRCMD_FMT == 0) begin
             // Get next_md address ready for use
@@ -198,13 +198,9 @@ module rv_iopmp_checker #(
                     next_md = i;
                     break;
                 end
-                if( i == N_MDS - 1) begin // If we are here, we are on the last MD
-                    last_md = 1;
-                    break;
-                end
             end
 
-            if(get_next_md)
+            if(!entries_left_md)
                 payload_2nd_stage_stall_d.current_md = next_md;
         end
     end
@@ -217,7 +213,6 @@ module rv_iopmp_checker #(
     always_comb begin
         rslt_valid_o = 1'b0;
         error_valid_o = 1'b0;
-        get_next_md      = 1'b0;
 
         rslt_d  = '{default:'0};
         error_d = '{default:'0};
@@ -283,8 +278,6 @@ module rv_iopmp_checker #(
                     // Handle entry paging
                     if (entries_left_md)
                         n_entries_offset_d = n_entries_offset_q + N_ENTRY_ANALYZERS;
-                    else
-                        get_next_md = 1'b1;
                 end
             end
         end
@@ -342,24 +335,22 @@ module rv_iopmp_checker #(
         assign index = i + n_entries_offset_q + md_base;
 
         // Get previous entry full address
-        assign previous_entry_addr = index == 0? '0 : {
-            entry_data_i[index - 1].addrh,
-            entry_data_i[index - 1].addrl
-        };
+        assign previous_entry_addr = index == 0? '0 : entry_data_i[index - 1].addr.base_addr;
 
         // Instantiate entry analyzer
         rv_iopmp_entry_analyzer #(
+            .base_end_addr_t ( base_end_addr_t ),
             .ADDR_WIDTH (ADDR_WIDTH)
         ) i_entry_analyzer (
-            .addr_to_check_i         (payload_2nd_stage.data_to_analyze.address),
-            .final_addr_to_check_i   (payload_2nd_stage.data_to_analyze.final_address),
-            .addr_i                  (entry_data_i[index].addrl),
-            .addrh_i                 (entry_data_i[index].addrh),
-            .previous_entry_addr_i   (previous_entry_addr[31:0]),
-            .previous_entry_addrh_i  (previous_entry_addr[63:32]),
-            .mode_i                  (entry_data_i[index].cfg.a),
-            .match_o                 (match_array[i]),
-            .partial_match_o         (partial_match_array[i])
+            .addr_to_check_i        ( payload_2nd_stage.data_to_analyze.address        ),
+            .final_addr_to_check_i  ( payload_2nd_stage.data_to_analyze.final_address  ),
+
+            .addr_i                 ( entry_data_i[index].addr  ),
+            .previous_entry_addr_i  ( previous_entry_addr   ),
+            .mode_i                 ( entry_data_i[index].cfg.a ),
+
+            .match_o                ( match_array[i] ),
+            .partial_match_o        ( partial_match_array[i] )
         );
 
         // Access type logic (READ, WRITE, EXECUTE)
@@ -394,7 +385,7 @@ module rv_iopmp_checker #(
             match_eid_q <= '0;
 
             stall_q     <= 1'b0;
-            payload_2nd_stage_stall_q = '{default:'0};
+            payload_2nd_stage_stall_q <= '{default:'0};
         end else begin
             n_entries_offset_q <= n_entries_offset_d;
 
@@ -402,8 +393,7 @@ module rv_iopmp_checker #(
             match_eid_q <= match_eid;
 
             stall_q     <= stall_d;
-            if (stall_d)
-                payload_2nd_stage_stall_q <= payload_2nd_stage_stall_d;
+            payload_2nd_stage_stall_q <= payload_2nd_stage_stall_d;
         end
     end
 

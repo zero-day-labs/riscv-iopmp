@@ -47,12 +47,12 @@ async def config_entry_msg(master, entry, addr, len, r=0, w=0, x=0):
 
     await master.write(attr, msg)
 
-async def config_mdcfg_msg(master, entry, t):
+async def config_mdcfg_msg(master, entry, t, t2):
     md_base_addr = (entry * 4) + 0x800
     
     # Start trans
     attr = axi_master.AxMsg(md_base_addr, 0, 3, 0)
-    msg = axi_master.WMsg([t], [0xF], 0)
+    msg = axi_master.WMsg([t | t2 << 32], [0xFF], 0)
 
     await master.write(attr, msg)
 
@@ -83,15 +83,14 @@ async def test(dut):
     await slv_intf.init()
     
     await config_entry_msg(config_intf, 13, 0x800, 0x100, 1, 1, 1)
-    await config_mdcfg_msg(config_intf, 0, 3)
-    await config_mdcfg_msg(config_intf, 2, 16)
-    await config_mdcfg_msg(config_intf, 1, 9)
-    await config_srcmd_msg(config_intf, 3, [0, 1, 2])
+    await config_mdcfg_msg(config_intf, 0, 3, 9)
+    await config_mdcfg_msg(config_intf, 2, 16, 0)
+    await config_srcmd_msg(config_intf, 3, [0, 1])
 
     for _ in range(20):
         await RisingEdge(dut.clk_i)
 
-    dut.slv_aw_wid_i.value = 1;
+    dut.slv_aw_wid_i.value = 3;
     # attr = axi_master.AxMsg(0x8F8, 2, 3, 1)
     # msg = axi_master.WMsg([2, 6, 9], [0xFF, 0xFF, 0xFF], 2)
     # # await cocotb.start(slv_intf.write(attr, msg))
